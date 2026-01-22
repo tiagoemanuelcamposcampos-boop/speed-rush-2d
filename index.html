@@ -2,79 +2,111 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Corrida 2D Ultimate</title>
+    <title>Nitro Racer 2D</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            background: #000; 
+            background: #0a0a0a; 
             color: white; 
-            font-family: 'Segoe UI', Roboto, sans-serif; 
-            overflow: hidden; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            width: 100vw;
         }
-        canvas { 
-            display: block; 
-            background: #222; 
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-        }
+
+        /* MENU PRINCIPAL ESTILIZADO */
         #menu { 
             position: absolute; 
-            z-index: 10; 
-            background: rgba(0, 0, 0, 0.9); 
+            z-index: 100; 
             width: 100%; 
             height: 100%; 
+            background: radial-gradient(circle, #1a1a2e 0%, #0f0f1a 100%);
             display: flex; 
             flex-direction: column; 
             justify-content: center; 
             align-items: center;
-            text-align: center;
+            border: 10px solid #16213e;
         }
-        h1 { font-size: 3rem; color: #f1c40f; margin-bottom: 20px; text-shadow: 0 5px 15px rgba(241, 196, 15, 0.4); }
-        .stats { font-size: 1.2rem; margin-bottom: 30px; color: #bdc3c7; }
+
+        h1 { 
+            font-size: 4rem; 
+            letter-spacing: 5px;
+            color: #00d2ff;
+            text-shadow: 0 0 20px #00d2ff, 0 0 40px #3a47d5;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .stats-container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            min-width: 300px;
+        }
+
+        .stats-container p { font-size: 1.2rem; margin: 5px 0; color: #abd8f5; }
+
+        .btn-group { display: flex; flex-direction: column; gap: 15px; }
+
         button { 
-            padding: 15px 40px; 
-            margin: 10px; 
-            font-size: 1.2rem; 
-            font-weight: bold;
+            padding: 18px 50px; 
+            font-size: 1.1rem; 
+            font-weight: 900;
+            text-transform: uppercase;
             cursor: pointer; 
-            border-radius: 50px; 
+            border-radius: 4px; 
             border: none; 
-            background: linear-gradient(45deg, #e74c3c, #c0392b); 
+            background: linear-gradient(90deg, #3a47d5 0%, #00d2ff 100%);
             color: white; 
             transition: 0.3s;
-            width: 280px;
+            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.4);
+            position: relative;
+            overflow: hidden;
         }
-        button:hover { transform: scale(1.05); filter: brightness(1.2); }
-        .locked { opacity: 0.5; filter: grayscale(1); background: #7f8c8d; }
-        .btn-buy { font-size: 0.9rem; background: #2980b9; }
+
+        button:hover { 
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 210, 255, 0.6);
+        }
+
+        .btn-store {
+            background: #16213e;
+            border: 1px solid #3a47d5;
+            font-size: 0.9rem;
+        }
+
+        .locked { filter: grayscale(1); opacity: 0.6; cursor: not-allowed; }
+
+        canvas { display: block; background: #111; }
     </style>
 </head>
 <body>
 
 <div id="menu">
-    <h1>🏎️ CORRIDA 2D</h1>
-    <div class="stats">
-        <p id="recordeTexto">🏆 Recorde: 0s</p>
-        <p id="moedasTexto">💰 Minhas Moedas: 0</p>
+    <h1>NITRO RACER</h1>
+    <div class="stats-container">
+        <p id="recordeTexto">🏆 BEST: 0s</p>
+        <p id="moedasTexto">💰 CASH: $0</p>
     </div>
-    <button onclick="startGame()">▶ JOGAR AGORA</button>
-    <button onclick="comprarCarro(1)" id="btn1" class="btn-buy">AZUL (50 💰)</button>
-    <button onclick="comprarCarro(2)" id="btn2" class="btn-buy">VERDE (150 💰)</button>
+    
+    <div class="btn-group">
+        <button onclick="startGame()">START RACE</button>
+        <button onclick="comprarCarro(1)" id="btn1" class="btn-store">BLUE BEAST ($50)</button>
+        <button onclick="comprarCarro(2)" id="btn2" class="btn-store">GREEN MACHINE ($150)</button>
+    </div>
 </div>
 
 <canvas id="game"></canvas>
 
 <script>
-/* ================= CONFIGURAÇÕES E ASSETS ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// Ajuste automático de tela cheia
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -82,27 +114,32 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Imagens com fallback (se falhar, o jogo avisa)
-const assets = {
-    pista: "https://i.imgur.com/2JYQZQp.png",
-    moeda: "https://i.imgur.com/v8S778X.png",
-    jogadores: [
-        "https://i.imgur.com/Y4RZ6Zy.png", // Vermelho
-        "https://i.imgur.com/1Q9Z1Zm.png", // Azul
-        "https://i.imgur.com/6W2Rz9Z.png"  // Verde
-    ],
-    inimigos: [
-        "https://i.imgur.com/9QOQZ4F.png",
-        "https://i.imgur.com/WP7JQkU.png"
-    ]
-};
+/* ================= ASSETS E FALLBACK ================= */
+const imgPista = new Image(); imgPista.src = "https://i.imgur.com/2JYQZQp.png";
+const imgMoeda = new Image(); imgMoeda.src = "https://i.imgur.com/v8S778X.png";
 
-const imgPista = new Image(); imgPista.src = assets.pista;
-const imgMoeda = new Image(); imgMoeda.src = assets.moeda;
-const carrosJogador = assets.jogadores.map(src => { const img = new Image(); img.src = src; return img; });
-const carrosInimigos = assets.inimigos.map(src => { const img = new Image(); img.src = src; return img; });
+const carrosCores = ["#ff4757", "#1e90ff", "#2ed573"]; // Fallback colors
+const imagensCarros = [
+    "https://i.imgur.com/Y4RZ6Zy.png",
+    "https://i.imgur.com/1Q9Z1Zm.png",
+    "https://i.imgur.com/6W2Rz9Z.png"
+].map(src => {
+    const img = new Image();
+    img.src = src;
+    return img;
+});
 
-/* ================= LÓGICA DE PERSISTÊNCIA ================= */
+const inimigosCores = ["#ffa502", "#57606f"];
+const imagensInimigos = [
+    "https://i.imgur.com/9QOQZ4F.png",
+    "https://i.imgur.com/WP7JQkU.png"
+].map(src => {
+    const img = new Image();
+    img.src = src;
+    return img;
+});
+
+/* ================= DATA ================= */
 let moedas = Number(localStorage.getItem("moedas")) || 0;
 let recorde = Number(localStorage.getItem("recorde")) || 0;
 let carrosComprados = JSON.parse(localStorage.getItem("carros")) || [true, false, false];
@@ -116,10 +153,10 @@ function salvar(){
 }
 
 function atualizarMenu(){
-    document.getElementById("recordeTexto").innerText = "🏆 Recorde: " + recorde + "s";
-    document.getElementById("moedasTexto").innerText = "💰 Minhas Moedas: " + moedas;
-    document.getElementById("btn1").innerHTML = carrosComprados[1] ? "USAR AZUL" : "COMPRAR AZUL (50 💰)";
-    document.getElementById("btn2").innerHTML = carrosComprados[2] ? "USAR VERDE" : "COMPRAR VERDE (150 💰)";
+    document.getElementById("recordeTexto").innerText = "🏆 BEST: " + recorde + "s";
+    document.getElementById("moedasTexto").innerText = "💰 CASH: $" + moedas;
+    document.getElementById("btn1").innerText = carrosComprados[1] ? "SELECT BLUE" : "BUY BLUE ($50)";
+    document.getElementById("btn2").innerText = carrosComprados[2] ? "SELECT GREEN" : "BUY GREEN ($150)";
     document.getElementById("btn1").classList.toggle("locked", !carrosComprados[1] && moedas < 50);
     document.getElementById("btn2").classList.toggle("locked", !carrosComprados[2] && moedas < 150);
 }
@@ -127,133 +164,117 @@ atualizarMenu();
 
 function comprarCarro(id){
     const precos = [0, 50, 150];
-    if(carrosComprados[id]){
-        carroAtual = id;
-    } else if(moedas >= precos[id]){
+    if(carrosComprados[id]) { carroAtual = id; }
+    else if(moedas >= precos[id]){
         moedas -= precos[id];
         carrosComprados[id] = true;
         carroAtual = id;
     }
-    salvar();
-    atualizarMenu();
+    salvar(); atualizarMenu();
 }
 
-/* ================= MOTOR DO JOGO ================= */
-let player, obstacles = [], gameOver = true;
-let startTime, pistaY = 0;
+/* ================= ENGINE ================= */
+let player, obstacles = [], gameOver = true, startTime, pistaY = 0;
 
-function Sprite(w, h, img, x, y, type) {
-    this.w = w; this.h = h; this.img = img; this.x = x; this.y = y; this.type = type;
+function GameObject(w, h, x, y, type, color, img) {
+    this.w = w; this.h = h; this.x = x; this.y = y;
+    this.type = type; this.color = color; this.img = img;
     this.speedX = 0;
-    this.update = function() {
-        ctx.drawImage(this.img, this.x, this.y, this.w, this.h);
+
+    this.draw = function() {
+        // Tenta desenhar imagem, se falhar ou não carregar, desenha o retângulo estilizado
+        if (this.img && this.img.complete && this.img.naturalWidth !== 0) {
+            ctx.drawImage(this.img, this.x, this.y, this.w, this.h);
+        } else {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+            ctx.strokeStyle = "white";
+            ctx.strokeRect(this.x, this.y, this.w, this.h);
+        }
     };
-    this.newPos = function() {
+
+    this.update = function() {
         this.x += this.speedX;
-        // Limites da tela
         if (this.x < 0) this.x = 0;
         if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
     };
 }
 
-function checkCollision(a, b) {
-    const p = 12; // Padding para colisão mais real
-    return !(a.x + p > b.x + b.w - p || a.x + a.w - p < b.x + p || a.y + p > b.y + b.h - p || a.y + a.h - p < b.y + p);
-}
-
 function startGame() {
     document.getElementById("menu").style.display = "none";
-    gameOver = false;
-    obstacles = [];
-    pistaY = 0;
-    startTime = Date.now();
-    // Tamanho proporcional do carro
-    const carW = 60;
-    const carH = 100;
-    player = new Sprite(carW, carH, carrosJogador[carroAtual], canvas.width/2 - carW/2, canvas.height - carH - 20, "player");
+    gameOver = false; obstacles = []; startTime = Date.now();
+    player = new GameObject(55, 95, canvas.width/2-25, canvas.height-120, "player", carrosCores[carroAtual], imagensCarros[carroAtual]);
     loop();
 }
 
 function loop() {
     if (gameOver) return;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Velocidade aumenta com o tempo
-    let gameSpeed = 7 + Math.floor((Date.now() - startTime) / 8000);
+    let speed = 8 + Math.floor((Date.now() - startTime) / 10000);
 
-    // Desenha Pista Infinita
-    pistaY += gameSpeed;
+    // Pista
+    pistaY += speed;
     if (pistaY >= canvas.height) pistaY = 0;
-    ctx.drawImage(imgPista, 0, pistaY, canvas.width, canvas.height);
-    ctx.drawImage(imgPista, 0, pistaY - canvas.height, canvas.width, canvas.height);
+    if (imgPista.complete) {
+        ctx.drawImage(imgPista, 0, pistaY, canvas.width, canvas.height);
+        ctx.drawImage(imgPista, 0, pistaY - canvas.height, canvas.width, canvas.height);
+    } else {
+        ctx.fillStyle = "#333"; ctx.fillRect(0,0, canvas.width, canvas.height);
+    }
 
-    player.newPos();
     player.update();
+    player.draw();
 
-    // Gerar Obstáculos e Moedas
-    if (Math.random() < 0.02) {
-        let xPos = Math.random() * (canvas.width - 60);
-        if (Math.random() > 0.15) {
-            let imgInimigo = carrosInimigos[Math.floor(Math.random() * carrosInimigos.length)];
-            obstacles.push(new Sprite(60, 100, imgInimigo, xPos, -120, "enemy"));
+    // Spawner
+    if (Math.random() < 0.03) {
+        let x = Math.random() * (canvas.width - 60);
+        if (Math.random() > 0.2) {
+            let id = Math.floor(Math.random() * 2);
+            obstacles.push(new GameObject(55, 95, x, -100, "enemy", inimigosCores[id], imagensInimigos[id]));
         } else {
-            obstacles.push(new Sprite(40, 40, imgMoeda, xPos, -50, "coin"));
+            obstacles.push(new GameObject(30, 30, x, -50, "coin", "#f1c40f", imgMoeda));
         }
     }
 
-    // Atualizar Obstáculos
     for (let i = 0; i < obstacles.length; i++) {
-        obstacles[i].y += gameSpeed;
-        obstacles[i].update();
+        obstacles[i].y += speed;
+        obstacles[i].draw();
 
-        if (checkCollision(player, obstacles[i])) {
-            if (obstacles[i].type === "coin") {
-                moedas++;
-                obstacles.splice(i, 1);
-                i--;
+        // Colisão
+        let a = player, b = obstacles[i];
+        if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) {
+            if (b.type === "coin") {
+                moedas += 5; obstacles.splice(i, 1); i--;
             } else {
-                endGame();
-                return;
+                gameOver = true;
+                setTimeout(() => {
+                    document.getElementById("menu").style.display = "flex";
+                    if (Math.floor((Date.now()-startTime)/1000) > recorde) recorde = Math.floor((Date.now()-startTime)/1000);
+                    salvar(); atualizarMenu();
+                }, 500);
             }
         }
     }
-
-    // Limpar objetos fora da tela
     obstacles = obstacles.filter(o => o.y < canvas.height);
 
-    // HUD Simples
-    ctx.fillStyle = "white";
-    ctx.font = "bold 25px Arial";
-    ctx.shadowBlur = 5; ctx.shadowColor = "black";
-    ctx.fillText("💰 " + moedas, 20, 40);
-    ctx.fillText("⏱️ " + Math.floor((Date.now() - startTime)/1000) + "s", 20, 75);
-    ctx.shadowBlur = 0;
+    // UI
+    ctx.fillStyle = "#00d2ff"; ctx.font = "bold 25px Arial";
+    ctx.fillText("CASH: $" + moedas, 20, 40);
+    ctx.fillText("TIME: " + Math.floor((Date.now()-startTime)/1000) + "s", 20, 75);
 
     requestAnimationFrame(loop);
 }
 
-function endGame() {
-    gameOver = true;
-    let finalTime = Math.floor((Date.now() - startTime) / 1000);
-    if (finalTime > recorde) recorde = finalTime;
-    salvar();
-    alert("💥 BATIDA! Você sobreviveu por " + finalTime + " segundos.");
-    document.getElementById("menu").style.display = "flex";
-    atualizarMenu();
-}
-
-/* ================= CONTROLES ================= */
+/* CONTROLES */
 window.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft' || e.key === 'a') player.speedX = -8;
-    if (e.key === 'ArrowRight' || e.key === 'd') player.speedX = 8;
+    if (e.key === 'ArrowLeft' || e.key === 'a') player.speedX = -10;
+    if (e.key === 'ArrowRight' || e.key === 'd') player.speedX = 10;
 });
 window.addEventListener('keyup', () => player.speedX = 0);
-
-// Suporte para touch (celular)
 canvas.addEventListener('touchstart', e => {
-    let t = e.touches[0].clientX;
-    player.speedX = (t < window.innerWidth / 2) ? -8 : 8;
+    let x = e.touches[0].clientX;
+    player.speedX = (x < window.innerWidth/2) ? -10 : 10;
 });
 canvas.addEventListener('touchend', () => player.speedX = 0);
 </script>
