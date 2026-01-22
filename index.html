@@ -2,281 +2,453 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Nitro Racer 2D</title>
+    <title>Nitro Racer: Edição Gamer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            background: #0a0a0a; 
-            color: white; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            overflow: hidden;
+            background: #050505; 
+            color: #fff; 
+            font-family: 'Press Start 2P', cursive; /* Fonte Gamer */
+            overflow: hidden; 
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
         }
 
-        /* MENU PRINCIPAL ESTILIZADO */
-        #menu { 
-            position: absolute; 
-            z-index: 100; 
-            width: 100%; 
-            height: 100%; 
-            background: radial-gradient(circle, #1a1a2e 0%, #0f0f1a 100%);
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 500px; /* Limite para parecer celular/arcade */
+            background: #111;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.2);
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* UI DO MENU */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            border: 10px solid #16213e;
+            z-index: 10;
+            backdrop-filter: blur(5px);
         }
 
         h1 { 
-            font-size: 4rem; 
-            letter-spacing: 5px;
-            color: #00d2ff;
-            text-shadow: 0 0 20px #00d2ff, 0 0 40px #3a47d5;
-            margin-bottom: 10px;
-            font-style: italic;
+            font-size: 25px; 
+            color: #00d2ff; 
+            text-shadow: 4px 4px #ff0055;
+            margin-bottom: 20px;
+            text-align: center;
+            line-height: 1.5;
         }
 
-        .stats-container {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            border: 1px solid rgba(0, 210, 255, 0.3);
-            min-width: 300px;
+        .stats { 
+            font-size: 12px; 
+            color: #ddd; 
+            margin-bottom: 30px; 
+            text-align: center;
+            line-height: 20px;
         }
 
-        .stats-container p { font-size: 1.2rem; margin: 5px 0; color: #abd8f5; }
-
-        .btn-group { display: flex; flex-direction: column; gap: 15px; }
-
-        button { 
-            padding: 18px 50px; 
-            font-size: 1.1rem; 
-            font-weight: 900;
-            text-transform: uppercase;
-            cursor: pointer; 
-            border-radius: 4px; 
-            border: none; 
-            background: linear-gradient(90deg, #3a47d5 0%, #00d2ff 100%);
-            color: white; 
-            transition: 0.3s;
-            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.4);
-            position: relative;
-            overflow: hidden;
+        button {
+            background: #ff0055;
+            color: white;
+            border: 4px solid #fff;
+            padding: 15px 20px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 10px;
+            width: 80%;
+            transition: transform 0.1s;
+            box-shadow: 0 5px 0 #990033;
         }
 
-        button:hover { 
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 25px rgba(0, 210, 255, 0.6);
+        button:active { transform: translateY(4px); box-shadow: 0 1px 0 #990033; }
+        button.secondary { background: #00d2ff; box-shadow: 0 5px 0 #0088aa; }
+        button.secondary:active { box-shadow: 0 1px 0 #0088aa; }
+        
+        .locked { filter: grayscale(1); opacity: 0.5; cursor: not-allowed; }
+
+        /* HUD DURANTE O JOGO */
+        #hud {
+            position: absolute;
+            top: 10px; left: 10px;
+            color: white;
+            font-size: 10px;
+            z-index: 5;
+            pointer-events: none;
+            display: none; /* Escondido no menu */
         }
-
-        .btn-store {
-            background: #16213e;
-            border: 1px solid #3a47d5;
-            font-size: 0.9rem;
-        }
-
-        .locked { filter: grayscale(1); opacity: 0.6; cursor: not-allowed; }
-
-        canvas { display: block; background: #111; }
     </style>
 </head>
 <body>
 
-<div id="menu">
-    <h1>NITRO RACER</h1>
-    <div class="stats-container">
-        <p id="recordeTexto">🏆 BEST: 0s</p>
-        <p id="moedasTexto">💰 CASH: $0</p>
-    </div>
+<div id="game-container">
+    <canvas id="game"></canvas>
     
-    <div class="btn-group">
-        <button onclick="startGame()">START RACE</button>
-        <button onclick="comprarCarro(1)" id="btn1" class="btn-store">BLUE BEAST ($50)</button>
-        <button onclick="comprarCarro(2)" id="btn2" class="btn-store">GREEN MACHINE ($150)</button>
+    <div id="hud">
+        <p>💰 <span id="hud-coins">0</span></p>
+        <p>⚡ <span id="hud-score">0</span>m</p>
+    </div>
+
+    <div id="ui-layer">
+        <h1>NITRO<br>RACER</h1>
+        <div class="stats">
+            <p>🏆 Recorde: <span id="menu-record">0</span>m</p>
+            <p>💰 Saldo: $<span id="menu-coins">0</span></p>
+        </div>
+        
+        <button onclick="startGame()">▶ CORRER AGORA</button>
+        <button id="btn-car1" class="secondary" onclick="comprarCarro(1)">CARRO FANTASMA ($50)</button>
+        <button id="btn-car2" class="secondary" onclick="comprarCarro(2)">TOXIC RACER ($150)</button>
     </div>
 </div>
 
-<canvas id="game"></canvas>
-
 <script>
+/* ================= CONFIGURAÇÃO GERAL ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const uiLayer = document.getElementById("ui-layer");
+const hud = document.getElementById("hud");
 
+// Ajusta o canvas para alta resolução
 function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
 }
 window.addEventListener('resize', resize);
 resize();
 
-/* ================= ASSETS E FALLBACK ================= */
-const imgPista = new Image(); imgPista.src = "https://i.imgur.com/2JYQZQp.png";
-const imgMoeda = new Image(); imgMoeda.src = "https://i.imgur.com/v8S778X.png";
+/* ================= SISTEMA DE SAVE ================= */
+let estado = {
+    moedas: Number(localStorage.getItem("moedas")) || 0,
+    recorde: Number(localStorage.getItem("recorde")) || 0,
+    carros: JSON.parse(localStorage.getItem("carros")) || [true, false, false],
+    carroAtual: Number(localStorage.getItem("carroAtual")) || 0
+};
 
-const carrosCores = ["#ff4757", "#1e90ff", "#2ed573"]; // Fallback colors
-const imagensCarros = [
-    "https://i.imgur.com/Y4RZ6Zy.png",
-    "https://i.imgur.com/1Q9Z1Zm.png",
-    "https://i.imgur.com/6W2Rz9Z.png"
-].map(src => {
-    const img = new Image();
-    img.src = src;
-    return img;
-});
-
-const inimigosCores = ["#ffa502", "#57606f"];
-const imagensInimigos = [
-    "https://i.imgur.com/9QOQZ4F.png",
-    "https://i.imgur.com/WP7JQkU.png"
-].map(src => {
-    const img = new Image();
-    img.src = src;
-    return img;
-});
-
-/* ================= DATA ================= */
-let moedas = Number(localStorage.getItem("moedas")) || 0;
-let recorde = Number(localStorage.getItem("recorde")) || 0;
-let carrosComprados = JSON.parse(localStorage.getItem("carros")) || [true, false, false];
-let carroAtual = Number(localStorage.getItem("carroAtual")) || 0;
-
-function salvar(){
-    localStorage.setItem("moedas", moedas);
-    localStorage.setItem("recorde", recorde);
-    localStorage.setItem("carros", JSON.stringify(carrosComprados));
-    localStorage.setItem("carroAtual", carroAtual);
+function salvar() {
+    localStorage.setItem("moedas", estado.moedas);
+    localStorage.setItem("recorde", estado.recorde);
+    localStorage.setItem("carros", JSON.stringify(estado.carros));
+    localStorage.setItem("carroAtual", estado.carroAtual);
+    atualizarMenu();
 }
 
-function atualizarMenu(){
-    document.getElementById("recordeTexto").innerText = "🏆 BEST: " + recorde + "s";
-    document.getElementById("moedasTexto").innerText = "💰 CASH: $" + moedas;
-    document.getElementById("btn1").innerText = carrosComprados[1] ? "SELECT BLUE" : "BUY BLUE ($50)";
-    document.getElementById("btn2").innerText = carrosComprados[2] ? "SELECT GREEN" : "BUY GREEN ($150)";
-    document.getElementById("btn1").classList.toggle("locked", !carrosComprados[1] && moedas < 50);
-    document.getElementById("btn2").classList.toggle("locked", !carrosComprados[2] && moedas < 150);
-}
-atualizarMenu();
+/* ================= GRÁFICOS (DESENHO MANUAL) ================= */
+// Cores dos carros
+const CORES = [
+    { body: "#ff0055", glass: "#880022", strip: "#fff" }, // Padrão
+    { body: "#00d2ff", glass: "#005588", strip: "#111" }, // Fantasma
+    { body: "#00ff00", glass: "#004400", strip: "#000" }  // Toxic
+];
 
-function comprarCarro(id){
-    const precos = [0, 50, 150];
-    if(carrosComprados[id]) { carroAtual = id; }
-    else if(moedas >= precos[id]){
-        moedas -= precos[id];
-        carrosComprados[id] = true;
-        carroAtual = id;
+function desenharCarro(x, y, scale, tipoCor, isEnemy) {
+    const w = 40 * scale;
+    const h = 70 * scale;
+    const c = isEnemy ? { body: "#555", glass: "#222", strip: "#333" } : CORES[tipoCor];
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    // Sombra
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(5, 5, w, h);
+
+    // Rodas
+    ctx.fillStyle = "#111";
+    ctx.fillRect(-2, 10, 4, 12); ctx.fillRect(w-2, 10, 4, 12); // Frente
+    ctx.fillRect(-2, h-22, 4, 12); ctx.fillRect(w-2, h-22, 4, 12); // Trás
+
+    // Chassi
+    ctx.fillStyle = c.body;
+    ctx.fillRect(0, 0, w, h);
+
+    // Vidro
+    ctx.fillStyle = c.glass;
+    ctx.fillRect(4, 20, w-8, 15); // Parabrisa
+    ctx.fillRect(4, 45, w-8, 10); // Traseiro
+
+    // Detalhe (Listra)
+    ctx.fillStyle = c.strip;
+    ctx.fillRect(w/2 - 2, 0, 4, h);
+
+    // Luzes
+    if(!isEnemy) {
+        ctx.fillStyle = "#ffaa00"; // Farol
+        ctx.fillRect(2, 2, 6, 4); ctx.fillRect(w-8, 2, 6, 4);
+        ctx.fillStyle = "#ff0000"; // Lanterna traseira
+        ctx.fillRect(2, h-2, 6, 4); ctx.fillRect(w-8, h-2, 6, 4);
+    } else {
+        ctx.fillStyle = "#ff0000"; // Inimigo mostra lanterna traseira pra cima se estiver descendo? Não, frente.
+        ctx.fillRect(2, h-2, 6, 4); ctx.fillRect(w-8, h-2, 6, 4);
     }
-    salvar(); atualizarMenu();
+
+    ctx.restore();
 }
 
-/* ================= ENGINE ================= */
-let player, obstacles = [], gameOver = true, startTime, pistaY = 0;
-
-function GameObject(w, h, x, y, type, color, img) {
-    this.w = w; this.h = h; this.x = x; this.y = y;
-    this.type = type; this.color = color; this.img = img;
-    this.speedX = 0;
-
-    this.draw = function() {
-        // Tenta desenhar imagem, se falhar ou não carregar, desenha o retângulo estilizado
-        if (this.img && this.img.complete && this.img.naturalWidth !== 0) {
-            ctx.drawImage(this.img, this.x, this.y, this.w, this.h);
-        } else {
-            ctx.fillStyle = this.color;
-            ctx.fillRect(this.x, this.y, this.w, this.h);
-            ctx.strokeStyle = "white";
-            ctx.strokeRect(this.x, this.y, this.w, this.h);
-        }
-    };
-
-    this.update = function() {
-        this.x += this.speedX;
-        if (this.x < 0) this.x = 0;
-        if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
-    };
+function desenharMoeda(x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.beginPath();
+    ctx.arc(15, 15, 12, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffd700"; // Ouro
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#ffaa00";
+    ctx.stroke();
+    ctx.fillStyle = "#ffaa00";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText("$", 10, 21);
+    ctx.restore();
 }
+
+/* ================= LÓGICA DO JOGO ================= */
+let player = { x: 0, y: 0, w: 40, h: 70, speed: 0 };
+let obstaculos = [];
+let particles = [];
+let gameRunning = false;
+let pistaOffset = 0;
+let speedBase = 5;
+let scoreDistancia = 0;
 
 function startGame() {
-    document.getElementById("menu").style.display = "none";
-    gameOver = false; obstacles = []; startTime = Date.now();
-    player = new GameObject(55, 95, canvas.width/2-25, canvas.height-120, "player", carrosCores[carroAtual], imagensCarros[carroAtual]);
+    uiLayer.style.display = "none";
+    hud.style.display = "block";
+    
+    player.x = canvas.width / 2 - 20;
+    player.y = canvas.height - 100;
+    player.speed = 0;
+    
+    obstaculos = [];
+    particles = [];
+    gameRunning = true;
+    speedBase = 6;
+    scoreDistancia = 0;
+    
     loop();
 }
 
-function loop() {
-    if (gameOver) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function spawnObstaculo() {
+    const laneWidth = canvas.width / 3;
+    const lane = Math.floor(Math.random() * 3);
+    const x = lane * laneWidth + (laneWidth / 2) - 20;
+    
+    // 30% chance de ser moeda, 70% inimigo
+    const tipo = Math.random() > 0.3 ? 'enemy' : 'coin';
+    
+    obstaculos.push({
+        x: x,
+        y: -100,
+        w: tipo === 'enemy' ? 40 : 30,
+        h: tipo === 'enemy' ? 70 : 30,
+        tipo: tipo,
+        speed: tipo === 'enemy' ? (Math.random() * 2 + 3) : 0 // Inimigos têm velocidade própria
+    });
+}
 
-    let speed = 8 + Math.floor((Date.now() - startTime) / 10000);
+function criarParticula(x, y, color) {
+    particles.push({
+        x: x, y: y,
+        vx: (Math.random() - 0.5) * 4,
+        vy: (Math.random() - 0.5) * 4,
+        life: 1.0,
+        color: color
+    });
+}
 
-    // Pista
-    pistaY += speed;
-    if (pistaY >= canvas.height) pistaY = 0;
-    if (imgPista.complete) {
-        ctx.drawImage(imgPista, 0, pistaY, canvas.width, canvas.height);
-        ctx.drawImage(imgPista, 0, pistaY - canvas.height, canvas.width, canvas.height);
-    } else {
-        ctx.fillStyle = "#333"; ctx.fillRect(0,0, canvas.width, canvas.height);
+function update() {
+    if (!gameRunning) return;
+
+    // Velocidade aumenta com o tempo (Dificuldade)
+    speedBase += 0.005;
+    scoreDistancia += speedBase / 10;
+    pistaOffset += speedBase;
+    if (pistaOffset > 40) pistaOffset = 0;
+
+    // Movimento Jogador
+    player.x += player.speed;
+    // Limites
+    if (player.x < 20) player.x = 20;
+    if (player.x + player.w > canvas.width - 20) player.x = canvas.width - player.w - 20;
+
+    // Partículas do escape (fumaça)
+    if (Math.random() < 0.3) {
+        criarParticula(player.x + 10, player.y + 70, "rgba(100,100,100,");
+        criarParticula(player.x + 30, player.y + 70, "rgba(100,100,100,");
     }
-
-    player.update();
-    player.draw();
 
     // Spawner
-    if (Math.random() < 0.03) {
-        let x = Math.random() * (canvas.width - 60);
-        if (Math.random() > 0.2) {
-            let id = Math.floor(Math.random() * 2);
-            obstacles.push(new GameObject(55, 95, x, -100, "enemy", inimigosCores[id], imagensInimigos[id]));
-        } else {
-            obstacles.push(new GameObject(30, 30, x, -50, "coin", "#f1c40f", imgMoeda));
-        }
-    }
+    if (Math.random() < 0.02) spawnObstaculo();
 
-    for (let i = 0; i < obstacles.length; i++) {
-        obstacles[i].y += speed;
-        obstacles[i].draw();
+    // Atualizar Obstáculos
+    for (let i = obstaculos.length - 1; i >= 0; i--) {
+        let obs = obstaculos[i];
+        obs.y += speedBase - (obs.tipo === 'enemy' ? obs.speed : 0); // Inimigo anda mais devagar que a pista (efeito ultrapassagem) ou vem contra? Vamos fazer efeito "ultrapassando"
 
-        // Colisão
-        let a = player, b = obstacles[i];
-        if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) {
-            if (b.type === "coin") {
-                moedas += 5; obstacles.splice(i, 1); i--;
+        // Colisão AABB simples
+        if (player.x < obs.x + obs.w &&
+            player.x + player.w > obs.x &&
+            player.y < obs.y + obs.h &&
+            player.y + player.h > obs.y) {
+            
+            if (obs.tipo === 'coin') {
+                estado.moedas += 10;
+                obstaculos.splice(i, 1);
             } else {
-                gameOver = true;
-                setTimeout(() => {
-                    document.getElementById("menu").style.display = "flex";
-                    if (Math.floor((Date.now()-startTime)/1000) > recorde) recorde = Math.floor((Date.now()-startTime)/1000);
-                    salvar(); atualizarMenu();
-                }, 500);
+                gameOver();
             }
         }
+
+        if (obs.y > canvas.height) obstaculos.splice(i, 1);
     }
-    obstacles = obstacles.filter(o => o.y < canvas.height);
 
-    // UI
-    ctx.fillStyle = "#00d2ff"; ctx.font = "bold 25px Arial";
-    ctx.fillText("CASH: $" + moedas, 20, 40);
-    ctx.fillText("TIME: " + Math.floor((Date.now()-startTime)/1000) + "s", 20, 75);
+    // Atualizar HUD
+    document.getElementById("hud-coins").innerText = estado.moedas;
+    document.getElementById("hud-score").innerText = Math.floor(scoreDistancia);
+}
 
+function draw() {
+    // 1. Fundo (Grama e Estrada)
+    ctx.fillStyle = "#2d3436"; // Asfalto
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Faixas laterais (Zebra)
+    const gridSize = 40;
+    for(let i = -gridSize; i < canvas.height; i+=gridSize) {
+        let yPos = i + pistaOffset;
+        let cor = (Math.floor((i + pistaOffset) / gridSize) % 2 === 0) ? "#ff0000" : "#ffffff";
+        ctx.fillStyle = cor;
+        ctx.fillRect(0, yPos, 20, gridSize); // Esq
+        ctx.fillRect(canvas.width - 20, yPos, 20, gridSize); // Dir
+    }
+
+    // Linhas centrais
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.fillRect(canvas.width/3, 0, 4, canvas.height);
+    ctx.fillRect((canvas.width/3)*2, 0, 4, canvas.height);
+
+    // 2. Obstáculos e Moedas
+    obstaculos.forEach(obs => {
+        if(obs.tipo === 'enemy') {
+            desenharCarro(obs.x, obs.y, 1, 0, true); // 0 = cor padrão, true = inimigo
+        } else {
+            desenharMoeda(obs.x, obs.y);
+        }
+    });
+
+    // 3. Jogador
+    if (gameRunning) {
+        desenharCarro(player.x, player.y, 1, estado.carroAtual, false);
+    }
+
+    // 4. Partículas
+    particles.forEach((p, index) => {
+        p.x += p.vx;
+        p.y += p.vy + 2; // Cai um pouco
+        p.life -= 0.05;
+        ctx.fillStyle = p.color + p.life + ")";
+        ctx.fillRect(p.x, p.y, 4, 4);
+        if(p.life <= 0) particles.splice(index, 1);
+    });
+}
+
+function loop() {
+    if (!gameRunning) return;
+    update();
+    draw();
     requestAnimationFrame(loop);
 }
 
-/* CONTROLES */
+function gameOver() {
+    gameRunning = false;
+    // Explosão visual
+    for(let i=0; i<30; i++) criarParticula(player.x + 20, player.y + 35, "rgba(255,50,0,");
+    draw(); // Desenha uma última vez para mostrar a explosão
+
+    if(scoreDistancia > estado.recorde) estado.recorde = Math.floor(scoreDistancia);
+    salvar();
+
+    setTimeout(() => {
+        alert("💥 BOOM! Você bateu.\nDistância: " + Math.floor(scoreDistancia) + "m");
+        uiLayer.style.display = "flex";
+        hud.style.display = "none";
+        atualizarMenu();
+    }, 100);
+}
+
+/* ================= CONTROLES ================= */
+// Teclado
 window.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft' || e.key === 'a') player.speedX = -10;
-    if (e.key === 'ArrowRight' || e.key === 'd') player.speedX = 10;
+    if(e.key === 'ArrowLeft' || e.key === 'a') player.speed = -7;
+    if(e.key === 'ArrowRight' || e.key === 'd') player.speed = 7;
 });
-window.addEventListener('keyup', () => player.speedX = 0);
+window.addEventListener('keyup', () => player.speed = 0);
+
+// Touch (Celular)
 canvas.addEventListener('touchstart', e => {
-    let x = e.touches[0].clientX;
-    player.speedX = (x < window.innerWidth/2) ? -10 : 10;
+    e.preventDefault(); // Evita scroll
+    const touchX = e.touches[0].clientX;
+    const meio = window.innerWidth / 2;
+    player.speed = (touchX < meio) ? -7 : 7;
 });
-canvas.addEventListener('touchend', () => player.speedX = 0);
+canvas.addEventListener('touchend', () => player.speed = 0);
+
+/* ================= MENU E LOJA ================= */
+function atualizarMenu() {
+    document.getElementById("menu-record").innerText = estado.recorde;
+    document.getElementById("menu-coins").innerText = estado.moedas;
+
+    // Botão Carro 1
+    const btn1 = document.getElementById("btn-car1");
+    if (estado.carros[1]) {
+        btn1.innerText = (estado.carroAtual === 1) ? "EQUIPADO" : "USAR AZUL";
+        btn1.classList.remove("locked");
+        btn1.style.background = (estado.carroAtual === 1) ? "#2ecc71" : "#00d2ff";
+    } else {
+        btn1.innerText = "COMPRAR AZUL ($50)";
+        if(estado.moedas < 50) btn1.classList.add("locked");
+        else btn1.classList.remove("locked");
+    }
+
+    // Botão Carro 2
+    const btn2 = document.getElementById("btn-car2");
+    if (estado.carros[2]) {
+        btn2.innerText = (estado.carroAtual === 2) ? "EQUIPADO" : "USAR VERDE";
+        btn2.classList.remove("locked");
+        btn2.style.background = (estado.carroAtual === 2) ? "#2ecc71" : "#00d2ff";
+    } else {
+        btn2.innerText = "COMPRAR VERDE ($150)";
+        if(estado.moedas < 150) btn2.classList.add("locked");
+        else btn2.classList.remove("locked");
+    }
+}
+
+function comprarCarro(id) {
+    const precos = [0, 50, 150];
+    if (estado.carros[id]) {
+        estado.carroAtual = id; // Selecionar
+    } else if (estado.moedas >= precos[id]) {
+        estado.moedas -= precos[id];
+        estado.carros[id] = true;
+        estado.carroAtual = id;
+    }
+    salvar();
+}
+
+// Iniciar menu
+atualizarMenu();
 </script>
 </body>
 </html>
