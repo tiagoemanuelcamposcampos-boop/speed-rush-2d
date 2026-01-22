@@ -5,32 +5,31 @@
 <title>Corrida 2D</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body {
-    margin: 0;
-    background: #111;
-    font-family: Arial, sans-serif;
-    color: white;
-    text-align: center;
-  }
-  canvas {
-    background: black;
-    display: block;
-    margin: auto;
-  }
-  #menu {
-    position: absolute;
-    width: 100%;
-    top: 100px;
-  }
-  button {
-    padding: 10px 20px;
-    margin: 10px;
-    font-size: 18px;
-    cursor: pointer;
-  }
-  .locked {
-    opacity: 0.5;
-  }
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+canvas {
+  display: block;
+  margin: auto;
+  background: black;
+}
+#menu {
+  position: absolute;
+  width: 100%;
+  top: 100px;
+}
+button {
+  padding: 10px 20px;
+  margin: 10px;
+  font-size: 18px;
+}
+.locked {
+  opacity: 0.5;
+}
 </style>
 </head>
 
@@ -45,7 +44,7 @@
   <button onclick="comprarCarro(2)" id="btn2">Comprar Carro Verde (150)</button>
 </div>
 
-<canvas id="game"></canvas>
+<canvas id="game" width="400" height="600"></canvas>
 
 <!-- Sons -->
 <audio id="motor" loop src="https://assets.mixkit.co/sfx/preview/mixkit-fast-car-engine-loop-1196.mp3"></audio>
@@ -55,24 +54,27 @@
 /* ================= CANVAS ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-canvas.width = 400;
-canvas.height = 600;
 
 /* ================= IMAGENS ================= */
+
+// carros do jogador
 const carrosJogadorSrc = [
-  "https://i.imgur.com/Y4RZ6Zy.png",
-  "https://i.imgur.com/1Q9Z1Zm.png",
-  "https://i.imgur.com/6W2Rz9Z.png"
+  "https://i.imgur.com/Y4RZ6Zy.png", // vermelho
+  "https://i.imgur.com/1Q9Z1Zm.png", // azul
+  "https://i.imgur.com/6W2Rz9Z.png"  // verde
 ];
 
+// carros inimigos
 const carrosInimigosSrc = [
   "https://i.imgur.com/9QOQZ4F.png",
   "https://i.imgur.com/WP7JQkU.png"
 ];
 
+// fundo da pista
 const pistaImg = new Image();
 pistaImg.src = "https://i.imgur.com/2JYQZQp.png";
 
+// preload
 const carrosJogador = carrosJogadorSrc.map(src => {
   const img = new Image();
   img.src = src;
@@ -105,8 +107,8 @@ const moedasTexto = document.getElementById("moedasTexto");
 function atualizarMenu(){
   recordeTexto.innerText = "🏆 Recorde: " + recorde + "s";
   moedasTexto.innerText = "💰 Moedas: " + moedas;
-  document.getElementById("btn1").className = carrosComprados[1] ? "" : "locked";
-  document.getElementById("btn2").className = carrosComprados[2] ? "" : "locked";
+  btn1.className = carrosComprados[1] ? "" : "locked";
+  btn2.className = carrosComprados[2] ? "" : "locked";
 }
 atualizarMenu();
 
@@ -127,110 +129,11 @@ function comprarCarro(id){
 }
 
 /* ================= JOGO ================= */
-let player, obstacles, gameOver;
+let player, obstacles = [], gameOver = false;
 let startTime, ultimoTempoMoeda = 0;
 let pistaY = 0;
 
 function startGame(){
   document.getElementById("menu").style.display = "none";
-  document.getElementById("motor").play();
+  d
 
-  player = {
-    x: canvas.width / 2 - 20,
-    y: canvas.height - 100,
-    w: 40,
-    h: 80,
-    speed: 7
-  };
-
-  obstacles = [];
-  gameOver = false;
-  startTime = Date.now();
-  ultimoTempoMoeda = 0;
-
-  requestAnimationFrame(update);
-}
-
-/* ================= CONTROLES ================= */
-document.addEventListener("keydown", e => {
-  if(!player) return;
-  if(e.key === "ArrowLeft") player.x -= player.speed;
-  if(e.key === "ArrowRight") player.x += player.speed;
-});
-
-canvas.addEventListener("touchstart", e => {
-  if(!player) return;
-  let x = e.touches[0].clientX;
-  x < window.innerWidth/2 ? player.x -= player.speed*3 : player.x += player.speed*3;
-});
-
-/* ================= OBSTÁCULOS ================= */
-setInterval(() => {
-  if(!gameOver && player){
-    obstacles.push({
-      x: Math.random() * (canvas.width - 60) + 10,
-      y: -100,
-      w: 40,
-      h: 80,
-      img: carrosInimigos[Math.floor(Math.random()*carrosInimigos.length)]
-    });
-  }
-}, 1200);
-
-/* ================= LOOP ================= */
-function update(){
-  if(gameOver) return;
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  const tempo = Math.floor((Date.now() - startTime)/1000);
-
-  if(tempo > 0 && tempo % 30 === 0 && tempo !== ultimoTempoMoeda){
-    moedas += 10;
-    ultimoTempoMoeda = tempo;
-    salvar();
-  }
-
-  pistaY += 4;
-  if(pistaY >= canvas.height) pistaY = 0;
-
-  ctx.drawImage(pistaImg, 0, pistaY - canvas.height, canvas.width, canvas.height);
-  ctx.drawImage(pistaImg, 0, pistaY, canvas.width, canvas.height);
-
-  player.x = Math.max(0, Math.min(canvas.width - player.w, player.x));
-  ctx.drawImage(carrosJogador[carroAtual], player.x, player.y, player.w, player.h);
-
-  obstacles.forEach(o => {
-    o.y += 4;
-    ctx.drawImage(o.img, o.x, o.y, o.w, o.h);
-
-    if(
-      player.x < o.x + o.w &&
-      player.x + player.w > o.x &&
-      player.y < o.y + o.h &&
-      player.y + player.h > o.y
-    ){
-      gameOver = true;
-      document.getElementById("motor").pause();
-      document.getElementById("crash").play();
-      if(tempo > recorde){
-        recorde = tempo;
-        salvar();
-      }
-      setTimeout(() => location.reload(), 2500);
-    }
-  });
-
-  obstacles = obstacles.filter(o => o.y < canvas.height);
-
-  ctx.fillStyle = "white";
-  ctx.font = "18px Arial";
-  ctx.fillText("⏱️ " + tempo + "s", 10, 25);
-  ctx.fillText("💰 " + moedas, 10, 50);
-
-  requestAnimationFrame(update);
-}
-</script>
-
-</body>
-</html>
