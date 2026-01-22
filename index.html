@@ -2,60 +2,66 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Corrida 2D</title>
+<title>Corrida 2D - Estilizado</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body { margin: 0; background: #111; color: white; font-family: Arial, sans-serif; text-align: center; }
-canvas { display: block; margin: auto; background: black; }
-#menu { position: absolute; width: 100%; top: 100px; }
-button { padding: 10px 20px; margin: 10px; font-size: 18px; }
-.locked { opacity: 0.5; }
+    body { margin: 0; background: #111; color: white; font-family: 'Segoe UI', Arial, sans-serif; text-align: center; overflow: hidden; }
+    canvas { display: block; margin: auto; background: #333; border: 4px solid #444; }
+    #menu { position: absolute; width: 100%; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(0,0,0,0.85); padding: 20px 0; }
+    button { padding: 12px 25px; margin: 10px; font-size: 18px; cursor: pointer; border-radius: 5px; border: none; background: #e74c3c; color: white; transition: 0.3s; }
+    button:hover { background: #c0392b; }
+    .locked { opacity: 0.4; filter: grayscale(1); }
+    h1 { font-size: 40px; margin-bottom: 10px; color: #f1c40f; }
 </style>
 </head>
 <body>
+
 <div id="menu">
-<h1>🏎️ Corrida 2D</h1>
-<p id="recordeTexto"></p>
-<p id="moedasTexto"></p>
-<button onclick="startGame()">▶ Jogar</button><br>
-<button onclick="comprarCarro(1)" id="btn1">Comprar Carro Azul (50)</button><br>
-<button onclick="comprarCarro(2)" id="btn2">Comprar Carro Verde (150)</button>
+    <h1>🏎️ CORRIDA 2D</h1>
+    <p id="recordeTexto">🏆 Recorde: 0s</p>
+    <p id="moedasTexto">💰 Moedas: 0</p>
+    <button onclick="startGame()">▶ JOGAR</button><br>
+    <button onclick="comprarCarro(1)" id="btn1">Carro Azul (50 💰)</button>
+    <button onclick="comprarCarro(2)" id="btn2">Carro Verde (150 💰)</button>
 </div>
+
 <canvas id="game" width="400" height="600"></canvas>
 
-<!-- Sons -->
-<audio id="motor" loop src="https://assets.mixkit.co/sfx/preview/mixkit-fast-car-engine-loop-1196.mp3"></audio>
-<audio id="crash" src="https://assets.mixkit.co/sfx/preview/mixkit-car-crash-1562.mp3"></audio>
-
 <script>
-/* ================= CANVAS ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-/* ================= IMAGENS ================= */
-// carros do jogador
-const carrosJogadorSrc = [
-    "https://i.imgur.com/Y4RZ6Zy.png", // vermelho
-    "https://i.imgur.com/1Q9Z1Zm.png", // azul
-    "https://i.imgur.com/6W2Rz9Z.png" // verde
+/* ================= NOVAS IMAGENS (LINKS ESTÁVEIS) ================= */
+const imgPista = new Image();
+imgPista.src = "https://img.freepik.com/vetores-gratis/estrada-de-asfalto-sem-emenda-textura-superior-da-estrada-rodovia-urbana-ou-autoestrada_107791-1604.jpg";
+
+const imgMoeda = new Image();
+imgMoeda.src = "https://i.imgur.com/v8S778X.png"; 
+
+// Carros do Jogador (Vermelho, Azul, Verde)
+const srcJogadores = [
+    "http://googleusercontent.com/image_collection/image_retrieval/16989218851675940121_0",
+    "http://googleusercontent.com/image_collection/image_retrieval/16448738746049814584_0",
+    "http://googleusercontent.com/image_collection/image_retrieval/7207269396184344259_0"
 ];
-// carros inimigos
-const carrosInimigosSrc = [
+
+// Carros Inimigos
+const srcInimigos = [
     "https://i.imgur.com/9QOQZ4F.png",
     "https://i.imgur.com/WP7JQkU.png"
 ];
-// fundo da pista
-const pistaImg = new Image();
-pistaImg.src = "https://i.imgur.com/2JYQZQp.png";
-// preload
-const carrosJogador = carrosJogadorSrc.map(src => { const img = new Image(); img.src = src; return img; });
-const carrosInimigos = carrosInimigosSrc.map(src => { const img = new Image(); img.src = src; return img; });
 
-/* ================= SAVE ================= */
+const carrosJogador = srcJogadores.map(src => { const img = new Image(); img.src = src; return img; });
+const carrosInimigos = srcInimigos.map(src => { const img = new Image(); img.src = src; return img; });
+
+/* ================= SISTEMA DE SAVE ================= */
 let moedas = Number(localStorage.getItem("moedas")) || 0;
 let recorde = Number(localStorage.getItem("recorde")) || 0;
-let carrosComprados = JSON.parse(localStorage.getItem("carros")) || [true,false,false];
+let carrosComprados = JSON.parse(localStorage.getItem("carros")) || [true, false, false];
 let carroAtual = Number(localStorage.getItem("carroAtual")) || 0;
+
+let player, obstacles = [], gameOver = true;
+let startTime, pistaY = 0;
 
 function salvar(){
     localStorage.setItem("moedas", moedas);
@@ -64,250 +70,136 @@ function salvar(){
     localStorage.setItem("carroAtual", carroAtual);
 }
 
-/* ================= MENU ================= */
-const recordeTexto = document.getElementById("recordeTexto");
-const moedasTexto = document.getElementById("moedasTexto");
-const btn1 = document.getElementById("btn1");
-const btn2 = document.getElementById("btn2");
-
 function atualizarMenu(){
-    recordeTexto.innerText = "🏆 Recorde: " + recorde + "s";
-    moedasTexto.innerText = "💰 Moedas: " + moedas;
-    btn1.className = carrosComprados[1] ? "" : "locked";
-    btn2.className = carrosComprados[2] ? "" : "locked";
+    document.getElementById("recordeTexto").innerText = "🏆 Recorde: " + recorde + "s";
+    document.getElementById("moedasTexto").innerText = "💰 Moedas: " + moedas;
+    document.getElementById("btn1").className = carrosComprados[1] ? "" : "locked";
+    document.getElementById("btn2").className = carrosComprados[2] ? "" : "locked";
 }
 atualizarMenu();
 
 function comprarCarro(id){
-    const precos = [0,50,150];
+    const precos = [0, 50, 150];
     if(carrosComprados[id]){
         carroAtual = id;
-        salvar();
-        atualizarMenu(); // Ensure menu updates when selecting
-        return;
-    }
-    if(moedas >= precos[id]){
+    } else if(moedas >= precos[id]){
         moedas -= precos[id];
         carrosComprados[id] = true;
         carroAtual = id;
-        salvar();
-        atualizarMenu();
     }
+    salvar();
+    atualizarMenu();
 }
 
-/* ================= JOGO ================= */
-let player, obstacles = [], gameOver = false;
-let startTime, ultimoTempoMoeda = 0;
-let pistaY = 0;
-const motorSound = document.getElementById("motor");
-const crashSound = document.getElementById("crash");
-
-function startGame(){
-    document.getElementById("menu").style.display = "none";
-    canvas.style.display = "block";
-    player = new Component(50, 90, carrosJogador[carroAtual], canvas.width / 2 - 25, canvas.height - 100, "image");
-    obstacles = [];
-    gameOver = false;
-    startTime = Date.now();
-    ultimoTempoMoeda = startTime;
-    // Tocar som do motor
-    if (motorSound) {
-        motorSound.currentTime = 0;
-        motorSound.play();
-    }
-    requestAnimationFrame(updateGameArea);
-}
-
-function Component(width, height, color, x, y, type) {
+/* ================= COMPONENTE DO JOGO ================= */
+function Component(width, height, img, x, y, type) {
     this.type = type;
-    if (type == "image") {
-        this.image = color; // color is the image object here
-    }
+    this.img = img;
     this.width = width;
     this.height = height;
     this.x = x;
     this.y = y;
     this.speedX = 0;
-    this.speedY = 0;    
+    
     this.update = function() {
-        ctx.save();
-        if (type == "image") {
-            ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-        } else {
-            ctx.fillStyle = color;
-            ctx.fillRect(this.x, this.y, this.width, this.height);
-        }
-        ctx.restore();
+        ctx.drawImage(this.img, this.x, this.y, this.width, this.height);
     }
+    
     this.newPos = function() {
         this.x += this.speedX;
-        // Keep player within bounds
-        if (this.x < 0) this.x = 0;
-        if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
+        if (this.x < 10) this.x = 10;
+        if (this.x + this.width > canvas.width - 10) this.x = canvas.width - this.width - 10;
     }
+
     this.crashWith = function(otherobj) {
-        const myleft = this.x;
-        const myright = this.x + this.width;
-        const mytop = this.y;
-        const mybottom = this.y + this.height;
-        const otherleft = otherobj.x;
-        const otherright = otherobj.x + otherobj.width;
-        const othertop = otherobj.y;
-        const otherbottom = otherobj.y + otherobj.height;
-        let crash = true;
-        if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
-            crash = false;
-        }
-        return crash;
+        let p = 10; // Margem para colisão justa
+        return !(this.y + this.height - p < otherobj.y || 
+                 this.y + p > otherobj.y + otherobj.height || 
+                 this.x + this.width - p < otherobj.x || 
+                 this.x + p > otherobj.x + otherobj.width);
     }
+}
+
+function startGame(){
+    document.getElementById("menu").style.display = "none";
+    gameOver = false;
+    obstacles = [];
+    pistaY = 0;
+    startTime = Date.now();
+    player = new Component(50, 90, carrosJogador[carroAtual], canvas.width/2 - 25, canvas.height - 110, "player");
+    updateGameArea();
 }
 
 function updateGameArea() {
     if (gameOver) return;
 
-    // Clear canvas and draw background
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    pistaY += 5 + getCurrentSpeed(); // Scroll speed based on time
-    if (pistaY >= canvas.height) {
-        pistaY = 0;
-    }
-    ctx.drawImage(pistaImg, 0, pistaY, canvas.width, canvas.height);
-    ctx.drawImage(pistaImg, 0, pistaY - canvas.height, canvas.width, canvas.height);
 
-    // Update player position
+    // Movimentação da pista
+    let vel = 6 + Math.floor((Date.now() - startTime) / 10000);
+    pistaY += vel;
+    if (pistaY >= canvas.height) pistaY = 0;
+    ctx.drawImage(imgPista, 0, pistaY, canvas.width, canvas.height);
+    ctx.drawImage(imgPista, 0, pistaY - canvas.height, canvas.width, canvas.height);
+
     player.newPos();
     player.update();
 
-    // Game logic for obstacles and coins
-    generateObstacles();
-    moveObstacles();
-
-    // Check for collisions
-    for (let i = 0; i < obstacles.length; i++) {
-        if (player.crashWith(obstacles[i])) {
-            endGame();
-            return;
+    // Spawner de obstáculos e moedas
+    if (Math.random() < 0.02) {
+        let lane = Math.floor(Math.random() * 3);
+        let xPos = 50 + lane * 110;
+        if (Math.random() > 0.2) {
+            let imgEnemy = carrosInimigos[Math.floor(Math.random() * carrosInimigos.length)];
+            obstacles.push(new Component(50, 90, imgEnemy, xPos, -100, "enemy"));
+        } else {
+            obstacles.push(new Component(30, 30, imgMoeda, xPos + 10, -50, "coin"));
         }
     }
 
-    // Display score and coins
-    displayStats();
+    for (let i = 0; i < obstacles.length; i++) {
+        obstacles[i].y += vel;
+        obstacles[i].update();
+
+        if (player.crashWith(obstacles[i])) {
+            if (obstacles[i].type === "coin") {
+                moedas++;
+                obstacles.splice(i, 1);
+                i--;
+            } else {
+                gameOver = true;
+                finalizarJogo();
+            }
+        }
+    }
+
+    obstacles = obstacles.filter(obs => obs.y < canvas.height);
+    
+    // HUD de texto
+    ctx.fillStyle = "white";
+    ctx.font = "bold 20px Arial";
+    ctx.fillText("💰 " + moedas, 20, 40);
+    ctx.fillText("⏱️ " + Math.floor((Date.now() - startTime)/1000) + "s", 20, 70);
 
     requestAnimationFrame(updateGameArea);
 }
 
-function getCurrentSpeed() {
-    const elapsedSeconds = (Date.now() - startTime) / 1000;
-    return Math.min(10, Math.floor(elapsedSeconds / 10)); // Speed increases every 10 seconds
-}
-
-function generateObstacles() {
-    const minInterval = 80;
-    const maxInterval = 150;
-    if (!obstacles.length || obstacles[obstacles.length - 1].y > minInterval + Math.random() * maxInterval) {
-        const lane = Math.floor(Math.random() * 3); // 3 lanes
-        const xPos = lane * (canvas.width / 3) + 25; // center in lane
-        const type = Math.random() > 0.8 ? "coin" : "enemy";
-        if (type === "enemy") {
-            const enemyImg = carrosInimigos[Math.floor(Math.random() * carrosInimigos.length)];
-            obstacles.push(new Component(50, 90, enemyImg, xPos, -90, "image"));
-        } else {
-            // Simple yellow square for a coin
-            obstacles.push(new Component(30, 30, "yellow", xPos + 10, -30, "coin"));
-        }
-    }
-}
-
-function moveObstacles() {
-    for (let i = 0; i < obstacles.length; i++) {
-        obstacles[i].y += 5 + getCurrentSpeed();
-        // Check for coin collection
-        if (obstacles[i].type === "coin" && player.crashWith(obstacles[i])) {
-            moedas += 1;
-            salvar();
-            obstacles.splice(i, 1);
-            i--;
-        }
-    }
-    // Remove off-screen obstacles
-    obstacles = obstacles.filter(obs => obs.y < canvas.height);
-    // Update visuals
-    for (let i = 0; i < obstacles.length; i++) {
-        obstacles[i].update();
-    }
-}
-
-function displayStats() {
-    const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-    ctx.fillStyle = "white";
-    ctx.font = "20px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText("Tempo: " + elapsedSeconds + "s", 10, 30);
-    ctx.fillText("💰: " + moedas, 10, 60);
-}
-
-function endGame() {
-    gameOver = true;
-    // Stop sounds
-    if (motorSound) motorSound.pause();
-    if (crashSound) crashSound.play();
-
-    // Update record
-    const finalTime = Math.floor((Date.now() - startTime) / 1000);
-    if (finalTime > recorde) {
-        recorde = finalTime;
-    }
+function finalizarJogo() {
+    let finalTime = Math.floor((Date.now() - startTime) / 1000);
+    if (finalTime > recorde) recorde = finalTime;
     salvar();
-
-    // Show menu again
-    setTimeout(() => {
-        document.getElementById("menu").style.display = "block";
-        canvas.style.display = "none";
-        atualizarMenu();
-        alert("Fim de Jogo! Tempo: " + finalTime + "s");
-    }, 500); // Small delay for crash sound to play
+    alert("💥 FIM DE JOGO! Tempo: " + finalTime + "s");
+    document.getElementById("menu").style.display = "block";
+    atualizarMenu();
 }
 
-// Handle input (simple left/right movement)
-document.addEventListener('keydown', (e) => {
-    if (!gameOver && document.getElementById("menu").style.display === "none") {
-        if (e.key === 'ArrowLeft' || e.key === 'a') {
-            player.speedX = -5;
-        } else if (e.key === 'ArrowRight' || e.key === 'd') {
-            player.speedX = 5;
-        }
-    }
+/* ================= CONTROLES ================= */
+window.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') player.speedX = -7;
+    if (e.key === 'ArrowRight' || e.key === 'd') player.speedX = 7;
 });
-
-document.addEventListener('keyup', (e) => {
-    if (!gameOver && document.getElementById("menu").style.display === "none") {
-        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'ArrowRight' || e.key === 'd') {
-            player.speedX = 0;
-        }
-    }
-});
-
-// Basic mobile touch handling (tap left/right side of screen)
-canvas.addEventListener('touchstart', (e) => {
-    if (!gameOver && document.getElementById("menu").style.display === "none") {
-        const touchX = e.touches[0].clientX;
-        const canvasRect = canvas.getBoundingClientRect();
-        if (touchX < canvasRect.left + canvasRect.width / 2) {
-            player.speedX = -5;
-        } else {
-            player.speedX = 5;
-        }
-    }
-});
-
-canvas.addEventListener('touchend', (e) => {
-    player.speedX = 0;
-});
-
-// Initially hide canvas
-canvas.style.display = "none";
+window.addEventListener('keyup', () => player.speedX = 0);
 </script>
 
 </body>
 </html>
-
