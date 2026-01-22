@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Nitro Racer: Turbo Edition</title>
+    <title>Nitro Racer: Ultimate Edition</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -17,7 +17,8 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            touch-action: none; /* Impede zoom/scroll no celular */
+            touch-action: none;
+            user-select: none;
         }
 
         #game-container {
@@ -27,11 +28,12 @@
             max-width: 500px;
             background: #111;
             box-shadow: 0 0 50px rgba(0, 210, 255, 0.1);
+            overflow: hidden;
         }
 
         canvas { display: block; width: 100%; height: 100%; }
 
-        /* UI DO MENU */
+        /* UI */
         #ui-layer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -45,105 +47,61 @@
         }
 
         h1 { 
-            font-size: 30px; 
+            font-size: 28px; 
             color: #00d2ff; 
             text-shadow: 4px 4px #ff0055;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             text-align: center;
-            line-height: 1.5;
             transform: skew(-10deg);
         }
 
-        .stats { font-size: 12px; color: #ddd; margin-bottom: 30px; text-align: center; line-height: 20px; }
+        .stats { font-size: 10px; color: #ddd; margin-bottom: 20px; text-align: center; line-height: 18px; }
 
         button {
             background: #ff0055;
             color: white;
             border: 4px solid #fff;
-            padding: 15px 20px;
+            padding: 15px;
             font-family: 'Press Start 2P', cursive;
-            font-size: 12px;
+            font-size: 10px;
             cursor: pointer;
-            margin: 10px;
-            width: 85%;
-            transition: transform 0.1s;
-            box-shadow: 0 6px 0 #990033;
+            margin: 8px;
+            width: 80%;
+            box-shadow: 0 5px 0 #990033;
             text-transform: uppercase;
         }
-
-        button:active { transform: translateY(4px); box-shadow: 0 2px 0 #990033; }
-        button.secondary { background: #00d2ff; box-shadow: 0 6px 0 #0088aa; }
-        button.secondary:active { box-shadow: 0 2px 0 #0088aa; }
+        button:active { transform: translateY(4px); box-shadow: 0 1px 0 #990033; }
+        button.secondary { background: #00d2ff; box-shadow: 0 5px 0 #0088aa; }
+        
         .locked { filter: grayscale(1); opacity: 0.6; cursor: not-allowed; }
 
-        /* HUD DURANTE O JOGO */
+        /* HUD */
         #hud {
-            position: absolute;
-            top: 10px; left: 10px;
-            width: calc(100% - 20px);
-            z-index: 10;
-            pointer-events: none;
-            display: none;
+            position: absolute; top: 10px; left: 10px; width: calc(100% - 20px);
+            z-index: 10; pointer-events: none; display: none;
         }
-
         .hud-row { display: flex; justify-content: space-between; font-size: 10px; text-shadow: 2px 2px 0 #000; margin-bottom: 5px; }
 
-        /* BARRA DE NITRO */
-        #nitro-container {
-            width: 100%;
-            height: 15px;
-            background: #222;
-            border: 2px solid #fff;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-        #nitro-bar {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #00d2ff, #00ffff);
-            transition: width 0.1s linear;
-            box-shadow: 0 0 10px #00d2ff;
-        }
-        #nitro-text {
-            text-align: center;
-            font-size: 8px;
-            margin-top: 2px;
-            color: #00ffff;
-            text-shadow: 0 0 5px #00d2ff;
-        }
-
-        /* BOTÃO NITRO MOBILE */
-        #mobile-nitro-btn {
-            position: absolute;
-            bottom: 30px;
-            right: 20px;
-            width: 70px;
-            height: 70px;
-            background: rgba(0, 210, 255, 0.5);
-            border: 3px solid #00ffff;
-            border-radius: 50%;
-            color: white;
-            font-size: 24px;
-            display: none; /* Só aparece no jogo */
-            justify-content: center;
-            align-items: center;
-            z-index: 15;
-            user-select: none;
-            touch-action: manipulation;
-            box-shadow: 0 0 15px #00d2ff;
-        }
-        #mobile-nitro-btn:active { background: #00ffff; color: #000; transform: scale(0.95); }
+        #nitro-container { width: 100%; height: 10px; background: #222; border: 2px solid #fff; border-radius: 4px; overflow: hidden; }
+        #nitro-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #00d2ff, #00ffff); transition: width 0.1s; }
         
-        /* Controles de toque invisíveis */
-        #touch-controls {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 5;
-            display: flex;
+        /* NOTIFICAÇÃO DE CONQUISTA */
+        #achievement-popup {
+            position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+            background: #ffd700; color: #000; padding: 10px; border: 2px solid #fff;
+            font-size: 10px; z-index: 30; transition: top 0.5s; text-align: center;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
         }
-        .touch-half { width: 50%; height: 100%; }
 
+        /* CONTROLES MOBILE */
+        #mobile-nitro-btn {
+            position: absolute; bottom: 30px; right: 20px; width: 70px; height: 70px;
+            background: rgba(0, 210, 255, 0.5); border: 3px solid #00ffff; border-radius: 50%;
+            color: white; font-size: 24px; display: none; justify-content: center; align-items: center;
+            z-index: 15; box-shadow: 0 0 15px #00d2ff;
+        }
+        #touch-controls { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; display: none; }
+        .touch-half { width: 50%; height: 100%; }
     </style>
 </head>
 <body>
@@ -151,44 +109,87 @@
 <div id="game-container">
     <canvas id="game"></canvas>
     
+    <div id="achievement-popup">🏆 CONQUISTA DESBLOQUEADA!<br><span id="ach-name"></span></div>
+
     <div id="hud">
         <div class="hud-row">
             <span>💰 <span id="hud-coins">0</span></span>
-            <span>⚡ <span id="hud-score">0</span>m</span>
+            <span>⏱️ <span id="hud-score">0</span>m</span>
         </div>
         <div id="nitro-container"><div id="nitro-bar"></div></div>
-        <div id="nitro-text">NITRO (ESPAÇO)</div>
+        <div style="text-align: center; font-size: 8px; margin-top: 2px; color: #00ffff;">NITRO (ESPAÇO)</div>
+        <div id="powerup-status" style="color: #ffff00; text-align: center; margin-top: 5px;"></div>
     </div>
 
     <div id="mobile-nitro-btn">⚡</div>
-    
-    <div id="touch-controls" style="display:none;">
+    <div id="touch-controls">
         <div class="touch-half" id="btn-left"></div>
         <div class="touch-half" id="btn-right"></div>
     </div>
 
     <div id="ui-layer">
-        <h1>NITRO<br>RACER</h1>
+        <h1>NITRO<br>ULTIMATE</h1>
         <div class="stats">
-            <p>🏆 BEST: <span id="menu-record">0</span>m</p>
-            <p>💰 CASH: $<span id="menu-coins">0</span></p>
+            <p>🏆 Recorde: <span id="menu-record">0</span>m</p>
+            <p>💰 Dinheiro: $<span id="menu-coins">0</span></p>
         </div>
-        
-        <button onclick="startGame()">▶ INICIAR CORRIDA</button>
-        <button id="btn-car1" class="secondary" onclick="comprarCarro(1)">CARRO FANTASMA ($50)</button>
-        <button id="btn-car2" class="secondary" onclick="comprarCarro(2)">TOXIC RACER ($150)</button>
+        <button onclick="startGame()">▶ CORRER (COM SOM)</button>
+        <button onclick="mostrarConquistas()" style="background:#8e44ad;">🏅 CONQUISTAS</button>
+        <button id="btn-car1" class="secondary" onclick="comprarCarro(1)">CARRO FANTASMA ($200)</button>
+        <button id="btn-car2" class="secondary" onclick="comprarCarro(2)">TOXIC RACER ($500)</button>
     </div>
 </div>
 
 <script>
-/* ================= SETUP ================= */
+/* ================= AUDIO SYSTEM (SINTETIZADOR) ================= */
+const AudioSys = {
+    ctx: null,
+    init: function() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    },
+    playTone: function(freq, type, duration, vol) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    },
+    engine: null,
+    engineGain: null,
+    startEngine: function() {
+        if (!this.ctx) this.init();
+        if (this.engine) return;
+        this.engine = this.ctx.createOscillator();
+        this.engineGain = this.ctx.createGain();
+        this.engine.type = 'sawtooth';
+        this.engine.frequency.value = 50;
+        this.engineGain.gain.value = 0.05;
+        this.engine.connect(this.engineGain);
+        this.engineGain.connect(this.ctx.destination);
+        this.engine.start();
+    },
+    updateEngine: function(speedRatio) {
+        if (this.engine) this.engine.frequency.value = 50 + (speedRatio * 100);
+    },
+    stopEngine: function() {
+        if (this.engine) { this.engine.stop(); this.engine = null; }
+    },
+    sfxCoin: function() { this.playTone(1200, 'sine', 0.1, 0.1); },
+    sfxCrash: function() { this.playTone(100, 'sawtooth', 0.5, 0.2); },
+    sfxPowerup: function() { this.playTone(600, 'square', 0.3, 0.1); }
+};
+
+/* ================= CONFIGURAÇÃO ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const uiLayer = document.getElementById("ui-layer");
 const hud = document.getElementById("hud");
-const nitroBar = document.getElementById("nitro-bar");
-const mobileNitroBtn = document.getElementById("mobile-nitro-btn");
-const touchControls = document.getElementById("touch-controls");
 
 function resize() {
     canvas.width = canvas.parentElement.clientWidth;
@@ -197,360 +198,413 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-/* ================= SAVE DATA ================= */
-let estado = {
-    moedas: Number(localStorage.getItem("moedas")) || 0,
-    recorde: Number(localStorage.getItem("recorde")) || 0,
-    carros: JSON.parse(localStorage.getItem("carros")) || [true, false, false],
-    carroAtual: Number(localStorage.getItem("carroAtual")) || 0
+/* ================= DADOS E CONQUISTAS ================= */
+let saveData = JSON.parse(localStorage.getItem("nitroRacerSave")) || {
+    moedas: 0, recorde: 0, 
+    carros: [true, false, false], carroAtual: 0,
+    totalCoins: 0, totalCrash: 0, totalDist: 0,
+    achievements: []
 };
 
-function salvar() {
-    localStorage.setItem("moedas", estado.moedas);
-    localStorage.setItem("recorde", estado.recorde);
-    localStorage.setItem("carros", JSON.stringify(estado.carros));
-    localStorage.setItem("carroAtual", estado.carroAtual);
-    atualizarMenu();
+const achievementsList = [
+    { id: 'first_run', name: "Piloto Novato", desc: "Corra 100m", check: s => s.totalDist > 100 },
+    { id: 'rich', name: "Magnata", desc: "Colete 500 moedas no total", check: s => s.totalCoins >= 500 },
+    { id: 'crasher', name: "Barbeiro", desc: "Bata 10 vezes", check: s => s.totalCrash >= 10 }
+];
+
+function checkAchievements() {
+    achievementsList.forEach(ach => {
+        if (!saveData.achievements.includes(ach.id) && ach.check(saveData)) {
+            saveData.achievements.push(ach.id);
+            showAchievement(ach.name);
+        }
+    });
+    save();
 }
 
-/* ================= GRÁFICOS PROCEDURAIS ================= */
+function showAchievement(name) {
+    const el = document.getElementById("achievement-popup");
+    document.getElementById("ach-name").innerText = name;
+    el.style.top = "20px";
+    setTimeout(() => el.style.top = "-100px", 3000);
+}
+
+function save() { localStorage.setItem("nitroRacerSave", JSON.stringify(saveData)); atualizarMenu(); }
+
+/* ================= ENGINE DO JOGO ================= */
 const CORES = [
     { body: "#ff0055", glass: "#880022", strip: "#fff" }, 
     { body: "#00d2ff", glass: "#005588", strip: "#111" }, 
     { body: "#00ff00", glass: "#004400", strip: "#000" }  
 ];
 
-function desenharCarro(x, y, tipoCor, isEnemy, shakeX) {
-    const w = 40, h = 70;
-    const c = isEnemy ? { body: "#555", glass: "#222", strip: "#333" } : CORES[tipoCor];
-    
-    ctx.save();
-    ctx.translate(x + shakeX, y); // Aplica tremedeira do nitro
-
-    // Sombra
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.fillRect(5, 5, w, h);
-
-    // Rodas
-    ctx.fillStyle = "#111";
-    ctx.fillRect(-2, 10, 4, 12); ctx.fillRect(w-2, 10, 4, 12);
-    ctx.fillRect(-2, h-22, 4, 12); ctx.fillRect(w-2, h-22, 4, 12);
-
-    // Corpo
-    ctx.fillStyle = c.body;
-    ctx.fillRect(0, 0, w, h);
-    
-    // Vidros
-    ctx.fillStyle = c.glass;
-    ctx.fillRect(4, 20, w-8, 15);
-    ctx.fillRect(4, 45, w-8, 10);
-
-    // Detalhe
-    ctx.fillStyle = c.strip;
-    ctx.fillRect(w/2 - 2, 0, 4, h);
-
-    // Luzes
-    if(!isEnemy) {
-        ctx.fillStyle = "#ffaa00"; 
-        ctx.fillRect(2, 2, 6, 4); ctx.fillRect(w-8, 2, 6, 4);
-        ctx.fillStyle = "#ff0000"; 
-        ctx.fillRect(2, h-2, 6, 4); ctx.fillRect(w-8, h-2, 6, 4);
-    } else {
-        ctx.fillStyle = "#ff0000"; 
-        ctx.fillRect(2, h-2, 6, 4); ctx.fillRect(w-8, h-2, 6, 4);
-    }
-    ctx.restore();
-}
-
-function desenharMoeda(x, y) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.beginPath();
-    ctx.arc(15, 15, 12, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffd700";
-    ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = "#ffaa00"; ctx.stroke();
-    ctx.fillStyle = "#ffaa00"; ctx.font = "bold 16px Arial"; ctx.fillText("$", 10, 21);
-    ctx.restore();
-}
-
-/* ================= LÓGICA DO JOGO ================= */
-let player = { x: 0, y: 0, w: 40, h: 70, speed: 0 };
-let obstaculos = [], particles = [];
+let player = { x: 0, y: 0, w: 40, h: 70, speed: 0, shield: false, magnet: 0, spun: 0 };
+let obstaculos = [], particles = [], skidMarks = [];
 let gameRunning = false;
-let pistaOffset = 0, scoreDistancia = 0;
-let baseSpeed = 5;
-
-// VARIÁVEIS DO NITRO
-let nitro = {
-    active: false,
-    fuel: 100,
-    maxFuel: 100,
-    drainRate: 1.5,
-    rechargeRate: 0.3
-};
+let pistaOffset = 0, scoreDistancia = 0, baseSpeed = 6;
+let nitro = { active: false, fuel: 100 };
+let timeOfDay = 0; // 0 a 1 (0 = dia, 1 = noite)
+let cycleDir = 1;
 
 function startGame() {
+    AudioSys.init(); AudioSys.startEngine();
     uiLayer.style.display = "none";
     hud.style.display = "block";
-    touchControls.style.display = "flex"; // Ativa toque
-    if(window.innerWidth < 800) mobileNitroBtn.style.display = "flex"; // Botão nitro só no mobile
+    document.getElementById("touch-controls").style.display = "flex";
+    if(window.innerWidth < 800) document.getElementById("mobile-nitro-btn").style.display = "flex";
     
-    player.x = canvas.width / 2 - 20;
-    player.y = canvas.height - 100;
-    player.speed = 0;
-    
-    obstaculos = []; particles = [];
+    player = { x: canvas.width/2-20, y: canvas.height-100, w: 40, h: 70, speed: 0, shield: false, magnet: 0, spun: 0 };
+    obstaculos = []; particles = []; skidMarks = [];
+    nitro = { active: false, fuel: 100 };
+    scoreDistancia = 0; baseSpeed = 6;
     gameRunning = true;
-    baseSpeed = 6;
-    scoreDistancia = 0;
-    nitro.fuel = 100;
-    nitro.active = false;
-    
     loop();
 }
 
 function update() {
     if (!gameRunning) return;
 
-    // LÓGICA DO NITRO
+    // Ciclo Dia/Noite
+    timeOfDay += 0.0005 * cycleDir;
+    if(timeOfDay > 0.8 || timeOfDay < 0) cycleDir *= -1;
+
+    // Nitro e Velocidade
     let currentSpeed = baseSpeed;
     let shake = 0;
-
     if (nitro.active && nitro.fuel > 0) {
-        currentSpeed = baseSpeed * 2.2; // Velocidade insana
-        nitro.fuel -= nitro.drainRate;
-        shake = (Math.random() - 0.5) * 4; // Tela treme
-        
-        // Partículas azuis (Fogo Nitro)
-        criarParticula(player.x + 10, player.y + 70, "rgba(0, 255, 255,");
-        criarParticula(player.x + 30, player.y + 70, "rgba(0, 255, 255,");
-        
+        currentSpeed *= 2.0;
+        nitro.fuel -= 1.0;
+        shake = (Math.random()-0.5)*5;
+        criarParticula(player.x+10, player.y+70, "rgba(0,255,255,");
     } else {
-        nitro.active = false; // Desativa se acabar
-        if (nitro.fuel < nitro.maxFuel) nitro.fuel += nitro.rechargeRate;
-        
-        // Partículas normais (Fumaça)
-        if (Math.random() < 0.3) {
-            criarParticula(player.x + 10, player.y + 70, "rgba(100,100,100,");
-            criarParticula(player.x + 30, player.y + 70, "rgba(100,100,100,");
-        }
+        nitro.active = false;
+        if(nitro.fuel < 100) nitro.fuel += 0.2;
     }
-    
-    // Atualiza barra visual
-    nitroBar.style.width = (nitro.fuel) + "%";
-    nitroBar.style.background = nitro.active ? "#fff" : "linear-gradient(90deg, #00d2ff, #00ffff)";
+    AudioSys.updateEngine(nitro.active ? 1.0 : 0.2);
 
-    // Dificuldade progressiva
-    baseSpeed += 0.003;
-    scoreDistancia += currentSpeed / 10;
+    // Rastros de Pneu (Skid Marks)
+    if(Math.abs(player.speed) > 4 && !player.spun) {
+        skidMarks.push({ x: player.x+5, y: player.y+60, life: 1 });
+        skidMarks.push({ x: player.x+35, y: player.y+60, life: 1 });
+    }
+    // Update Rastros
+    skidMarks.forEach(m => { m.y += currentSpeed; m.life -= 0.02; });
+    skidMarks = skidMarks.filter(m => m.life > 0);
+
+    // Movimento Pista
+    baseSpeed += 0.002;
+    scoreDistancia += currentSpeed/10;
     pistaOffset += currentSpeed;
     if (pistaOffset > 40) pistaOffset = 0;
 
     // Movimento Player
-    player.x += player.speed;
+    if(player.spun > 0) {
+        player.spun--;
+        player.speed = 0; // Perde controle
+        player.x += (Math.random()-0.5)*10; // Gira
+    } else {
+        player.x += player.speed;
+    }
     if (player.x < 20) player.x = 20;
     if (player.x + player.w > canvas.width - 20) player.x = canvas.width - player.w - 20;
+
+    // Power-ups
+    if(player.magnet > 0) player.magnet--;
+    document.getElementById("powerup-status").innerText = player.shield ? "ESCUDO ATIVO" : (player.magnet > 0 ? "ÍMÃ ATIVO" : "");
 
     // Spawner
     if (Math.random() < 0.02) spawnObstaculo();
 
-    // Obstáculos
+    // Lógica Obstáculos
     for (let i = obstaculos.length - 1; i >= 0; i--) {
         let obs = obstaculos[i];
-        // Se nitro ativo, inimigos parecem vir mais rápido (efeito visual)
-        obs.y += currentSpeed - (obs.tipo === 'enemy' ? obs.speed : 0);
+        
+        // Comportamentos
+        if(obs.tipo === 'weaver') obs.x += Math.sin(obs.y * 0.05) * 3;
+        
+        // Ímã
+        if(obs.tipo === 'coin' && player.magnet > 0 && Math.abs(obs.y - player.y) < 300) {
+            obs.x += (player.x - obs.x) * 0.1;
+            obs.y += (player.y - obs.y) * 0.1;
+        }
+
+        obs.y += currentSpeed - (obs.speed || 0);
 
         // Colisão
-        if (player.x < obs.x + obs.w && player.x + player.w > obs.x &&
-            player.y < obs.y + obs.h && player.y + player.h > obs.y) {
-            
+        if (checkCollision(player, obs)) {
             if (obs.tipo === 'coin') {
-                estado.moedas += 10;
+                saveData.moedas += 10; saveData.totalCoins += 10;
+                AudioSys.sfxCoin();
+                obstaculos.splice(i, 1);
+            } else if (obs.tipo === 'shield') {
+                player.shield = true; AudioSys.sfxPowerup();
+                obstaculos.splice(i, 1);
+            } else if (obs.tipo === 'magnet') {
+                player.magnet = 600; AudioSys.sfxPowerup();
+                obstaculos.splice(i, 1);
+            } else if (obs.tipo === 'oil') {
+                player.spun = 60; // Gira por 60 frames
                 obstaculos.splice(i, 1);
             } else {
-                gameOver();
+                // Inimigo
+                if(player.shield) {
+                    player.shield = false;
+                    obstaculos.splice(i, 1);
+                    AudioSys.sfxCrash();
+                    // Efeito de escudo quebrando
+                } else {
+                    gameOver();
+                }
             }
         }
         if (obs.y > canvas.height) obstaculos.splice(i, 1);
     }
-
-    // Partículas
-    updateParticles();
-
-    // HUD TEXTO
-    document.getElementById("hud-coins").innerText = estado.moedas;
-    document.getElementById("hud-score").innerText = Math.floor(scoreDistancia);
     
-    return shake; // Retorna valor de vibração para o draw
+    // UI Updates
+    document.getElementById("hud-coins").innerText = saveData.moedas;
+    document.getElementById("hud-score").innerText = Math.floor(scoreDistancia);
+    document.getElementById("nitro-bar").style.width = nitro.fuel + "%";
+
+    updateParticles();
+    return shake;
 }
 
-function draw(shakeX) {
+function draw(shake) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Asfalto
-    ctx.fillStyle = "#2d3436"; 
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Efeito de velocidade nas laterais (Blur quando nitro ativo)
-    if(nitro.active) {
-        ctx.fillStyle = "rgba(0, 210, 255, 0.1)";
-        ctx.fillRect(0,0, canvas.width, canvas.height);
-    }
+    ctx.save();
+    if(shake) ctx.translate(shake, 0);
 
-    // Zebras (Road limits)
-    const gridSize = 40;
-    for(let i = -gridSize; i < canvas.height; i+=gridSize) {
-        let yPos = i + pistaOffset;
-        let cor = (Math.floor((i + pistaOffset) / gridSize) % 2 === 0) ? "#ff0000" : "#ffffff";
-        ctx.fillStyle = cor;
-        ctx.fillRect(0, yPos, 20, gridSize);
-        ctx.fillRect(canvas.width - 20, yPos, 20, gridSize);
-    }
+    // 1. Chão
+    ctx.fillStyle = "#2d3436"; ctx.fillRect(0,0, canvas.width, canvas.height);
 
-    // Objetos
-    obstaculos.forEach(obs => {
-        if(obs.tipo === 'enemy') desenharCarro(obs.x, obs.y, 1, true, 0);
-        else desenharMoeda(obs.x, obs.y);
+    // 2. Rastros (Skid Marks)
+    skidMarks.forEach(m => {
+        ctx.fillStyle = `rgba(0,0,0,${m.life})`;
+        ctx.fillRect(m.x, m.y, 4, 10);
     });
 
-    // Player (Com shake se nitro ativo)
-    if (gameRunning) desenharCarro(player.x, player.y, estado.carroAtual, false, shakeX);
+    // 3. Pista (Zebras)
+    const gridSize = 40;
+    for(let i = -gridSize; i < canvas.height; i+=gridSize) {
+        let y = i + pistaOffset;
+        let c = (Math.floor((i+pistaOffset)/gridSize)%2===0) ? "#f00" : "#fff";
+        ctx.fillStyle = c;
+        ctx.fillRect(0, y, 20, gridSize);
+        ctx.fillRect(canvas.width-20, y, 20, gridSize);
+    }
 
-    // Partículas
+    // 4. Objetos
+    obstaculos.forEach(obs => {
+        if(['enemy','weaver','truck'].includes(obs.tipo)) {
+            let isTruck = obs.tipo === 'truck';
+            desenharCarro(obs.x, obs.y, 1, true, false, isTruck);
+        } else if (obs.tipo === 'oil') {
+            ctx.fillStyle = "#000"; 
+            ctx.beginPath(); ctx.ellipse(obs.x+20, obs.y+20, 25, 15, 0, 0, Math.PI*2); ctx.fill();
+        } else if (obs.tipo === 'shield') {
+            ctx.fillStyle = "rgba(0, 100, 255, 0.6)"; 
+            ctx.beginPath(); ctx.arc(obs.x+15, obs.y+15, 15, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#fff"; ctx.fillText("S", obs.x+8, obs.y+22);
+        } else if (obs.tipo === 'magnet') {
+            ctx.fillStyle = "rgba(255, 0, 0, 0.6)"; 
+            ctx.beginPath(); ctx.arc(obs.x+15, obs.y+15, 15, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#fff"; ctx.fillText("M", obs.x+8, obs.y+22);
+        } else {
+            // Moeda
+            ctx.beginPath(); ctx.arc(obs.x+15, obs.y+15, 12, 0, Math.PI*2); 
+            ctx.fillStyle = "#ffd700"; ctx.fill();
+            ctx.fillStyle = "#b8860b"; ctx.fillText("$", obs.x+10, obs.y+20);
+        }
+    });
+
+    // 5. Jogador
+    desenharCarro(player.x, player.y, saveData.carroAtual, false, player.shield);
+    
+    // 6. Efeito Noturno (Overlay)
+    if(timeOfDay > 0.1) {
+        ctx.fillStyle = `rgba(0, 5, 20, ${timeOfDay * 0.8})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Faróis (recorte no escuro)
+        if(gameRunning) desenharFarol(player.x, player.y);
+        obstaculos.forEach(o => {
+            if(['enemy','weaver','truck'].includes(o.tipo)) desenharFarol(o.x, o.y + o.h, true);
+        });
+    }
+
+    // 7. Partículas
     particles.forEach(p => {
         ctx.fillStyle = p.color + p.life + ")";
         ctx.fillRect(p.x, p.y, p.size, p.size);
     });
+
+    ctx.restore();
+}
+
+function desenharCarro(x, y, colorId, isEnemy, hasShield, isTruck=false) {
+    const c = isEnemy ? { body: "#555", glass: "#222" } : CORES[colorId];
+    const w = isTruck ? 50 : 40;
+    const h = isTruck ? 100 : 70;
+    
+    ctx.save();
+    ctx.translate(x, y);
+
+    // Sombra
+    ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(5, 5, w, h);
+
+    // Escudo Visual
+    if(hasShield) {
+        ctx.strokeStyle = "#00d2ff"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(w/2, h/2, w, 0, Math.PI*2); ctx.stroke();
+    }
+
+    // Corpo
+    ctx.fillStyle = c.body; ctx.fillRect(0,0,w,h);
+    // Vidros
+    ctx.fillStyle = c.glass; 
+    ctx.fillRect(4, isTruck?10:20, w-8, isTruck?25:15);
+    if(!isTruck) ctx.fillRect(4, 45, w-8, 10);
+    
+    // Luzes traseiras
+    ctx.fillStyle = "#f00"; ctx.fillRect(2, h-4, 6, 4); ctx.fillRect(w-8, h-4, 6, 4);
+
+    ctx.restore();
+}
+
+function desenharFarol(x, y, reverse) {
+    ctx.save();
+    // Usa 'globalCompositeOperation' para "limpar" o escuro ou adicionar luz
+    ctx.globalCompositeOperation = "lighter"; // Modo de mistura para luz
+    const grad = ctx.createLinearGradient(0, y, 0, reverse ? y+150 : y-150);
+    grad.addColorStop(0, "rgba(255, 255, 200, 0.4)");
+    grad.addColorStop(1, "rgba(255, 255, 200, 0)");
+    
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    if(reverse) {
+        ctx.moveTo(x+10, y); ctx.lineTo(x-20, y+150); ctx.lineTo(x+60, y+150); ctx.lineTo(x+30, y);
+    } else {
+        ctx.moveTo(x+10, y); ctx.lineTo(x-20, y-150); ctx.lineTo(x+60, y-150); ctx.lineTo(x+30, y);
+    }
+    ctx.fill();
+    ctx.restore();
 }
 
 function spawnObstaculo() {
-    const laneWidth = canvas.width / 3;
+    const laneW = canvas.width / 3;
     const lane = Math.floor(Math.random() * 3);
-    const x = lane * laneWidth + (laneWidth / 2) - 20;
-    const tipo = Math.random() > 0.3 ? 'enemy' : 'coin';
+    const x = lane * laneW + (laneW/2) - 20;
     
-    obstaculos.push({
-        x: x, y: -100,
-        w: tipo === 'enemy' ? 40 : 30, h: tipo === 'enemy' ? 70 : 30,
-        tipo: tipo,
-        speed: tipo === 'enemy' ? (Math.random() * 2 + 3) : 0
-    });
+    let rnd = Math.random();
+    let type = 'enemy';
+    let speed = Math.random() * 2 + 2;
+    let w=40, h=70;
+
+    if (rnd < 0.2) { type = 'coin'; w=30; h=30; }
+    else if (rnd < 0.23) { type = 'shield'; w=30; h=30; } // Powerup Raro
+    else if (rnd < 0.26) { type = 'magnet'; w=30; h=30; } // Powerup Raro
+    else if (rnd < 0.35) { type = 'oil'; w=40; h=40; speed = 0; }
+    else if (rnd < 0.5) { type = 'truck'; w=50; h=100; speed = 1.5; }
+    else if (rnd < 0.6) { type = 'weaver'; speed = 2.5; }
+
+    obstaculos.push({ x: x, y: -120, w: w, h: h, tipo: type, speed: speed });
+}
+
+function checkCollision(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
 function criarParticula(x, y, color) {
-    particles.push({
-        x: x, y: y,
-        vx: (Math.random() - 0.5) * 4,
-        vy: (Math.random() - 0.5) * 4 + 5, // Vão para baixo rápido
-        life: 1.0,
-        color: color,
-        size: nitro.active ? 6 : 4
-    });
+    particles.push({x:x, y:y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4+5, life:1.0, color:color, size:4});
 }
-
 function updateParticles() {
-    for (let i = particles.length - 1; i >= 0; i--) {
-        let p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= nitro.active ? 0.08 : 0.05;
-        if(p.life <= 0) particles.splice(i, 1);
+    for(let i=particles.length-1; i>=0; i--) {
+        let p = particles[i]; p.x+=p.vx; p.y+=p.vy; p.life-=0.05;
+        if(p.life<=0) particles.splice(i,1);
     }
 }
 
 function loop() {
     if (!gameRunning) return;
     let shake = update();
-    draw(shake || 0);
+    draw(shake);
     requestAnimationFrame(loop);
 }
 
 function gameOver() {
     gameRunning = false;
-    mobileNitroBtn.style.display = "none";
-    touchControls.style.display = "none";
+    AudioSys.stopEngine(); AudioSys.sfxCrash();
     
-    // Explosão final
-    for(let i=0; i<50; i++) criarParticula(player.x + 20, player.y + 35, "rgba(255,50,0,");
+    if(scoreDistancia > saveData.recorde) saveData.recorde = Math.floor(scoreDistancia);
+    saveData.totalDist += Math.floor(scoreDistancia);
+    saveData.totalCrash++;
+    save();
+    
+    // Animação explosão
+    for(let i=0;i<50;i++) criarParticula(player.x+20, player.y+35, "rgba(255,50,0,");
     draw(0);
 
-    if(scoreDistancia > estado.recorde) estado.recorde = Math.floor(scoreDistancia);
-    salvar();
-
     setTimeout(() => {
-        alert("💥 CRASH!\nDistância: " + Math.floor(scoreDistancia) + "m");
+        alert(`💥 FIM DE JOGO!\nDistância: ${Math.floor(scoreDistancia)}m`);
+        checkAchievements();
         uiLayer.style.display = "flex";
         hud.style.display = "none";
+        document.getElementById("touch-controls").style.display = "none";
+        document.getElementById("mobile-nitro-btn").style.display = "none";
         atualizarMenu();
-    }, 100);
+    }, 200);
 }
-
-/* ================= CONTROLES ================= */
-// Teclado
-window.addEventListener('keydown', e => {
-    if(e.key === 'ArrowLeft' || e.key === 'a') player.speed = -7;
-    if(e.key === 'ArrowRight' || e.key === 'd') player.speed = 7;
-    if(e.key === ' ' || e.key === 'Shift') nitro.active = true; // Ativa Nitro
-});
-
-window.addEventListener('keyup', e => {
-    if(['ArrowLeft','a','ArrowRight','d'].includes(e.key)) player.speed = 0;
-    if(e.key === ' ' || e.key === 'Shift') nitro.active = false; // Solta Nitro
-});
-
-// Touch (Controle de Direção Invisível)
-document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); player.speed = -7; });
-document.getElementById('btn-left').addEventListener('touchend', (e) => { e.preventDefault(); player.speed = 0; });
-
-document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); player.speed = 7; });
-document.getElementById('btn-right').addEventListener('touchend', (e) => { e.preventDefault(); player.speed = 0; });
-
-// Touch (Botão Nitro)
-mobileNitroBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    nitro.active = true;
-    mobileNitroBtn.style.transform = "scale(0.9)";
-});
-mobileNitroBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    nitro.active = false;
-    mobileNitroBtn.style.transform = "scale(1)";
-});
 
 /* ================= MENU ================= */
 function atualizarMenu() {
-    document.getElementById("menu-record").innerText = estado.recorde;
-    document.getElementById("menu-coins").innerText = estado.moedas;
-
+    document.getElementById("menu-record").innerText = saveData.recorde;
+    document.getElementById("menu-coins").innerText = saveData.moedas;
     [1, 2].forEach(id => {
         const btn = document.getElementById("btn-car" + id);
-        const preco = id === 1 ? 50 : 150;
-        const nome = id === 1 ? "AZUL" : "VERDE";
-        
-        if (estado.carros[id]) {
-            btn.innerText = (estado.carroAtual === id) ? "EQUIPADO" : "USAR " + nome;
+        const preco = id===1 ? 200 : 500;
+        const nome = id===1 ? "AZUL" : "VERDE";
+        if (saveData.carros[id]) {
+            btn.innerText = (saveData.carroAtual === id) ? "EQUIPADO" : "USAR " + nome;
             btn.classList.remove("locked");
-            btn.style.background = (estado.carroAtual === id) ? "#2ecc71" : "#00d2ff";
+            btn.style.background = (saveData.carroAtual === id) ? "#2ecc71" : "#00d2ff";
         } else {
             btn.innerText = `COMPRAR ${nome} ($${preco})`;
-            if(estado.moedas < preco) btn.classList.add("locked");
-            else btn.classList.remove("locked");
+            if(saveData.moedas < preco) btn.classList.add("locked"); else btn.classList.remove("locked");
         }
     });
 }
-
 function comprarCarro(id) {
-    const precos = [0, 50, 150];
-    if (estado.carros[id]) {
-        estado.carroAtual = id;
-    } else if (estado.moedas >= precos[id]) {
-        estado.moedas -= precos[id];
-        estado.carros[id] = true;
-        estado.carroAtual = id;
-    }
-    salvar();
+    const precos = [0, 200, 500];
+    if (saveData.carros[id]) { saveData.carroAtual = id; } 
+    else if (saveData.moedas >= precos[id]) { saveData.moedas -= precos[id]; saveData.carros[id] = true; saveData.carroAtual = id; }
+    save(); atualizarMenu();
 }
+function mostrarConquistas() {
+    let msg = "🏅 SUAS CONQUISTAS:\n\n";
+    if(saveData.achievements.length === 0) msg += "Nenhuma conquista desbloqueada ainda!";
+    else saveData.achievements.forEach(id => {
+        let ach = achievementsList.find(a => a.id === id);
+        msg += `✅ ${ach.name}: ${ach.desc}\n`;
+    });
+    alert(msg);
+}
+
+/* ================= INPUTS ================= */
+window.addEventListener('keydown', e => {
+    if(e.key==='ArrowLeft'||e.key==='a') player.speed = -7;
+    if(e.key==='ArrowRight'||e.key==='d') player.speed = 7;
+    if(e.key===' '||e.key==='Shift') nitro.active = true;
+});
+window.addEventListener('keyup', e => {
+    if(['ArrowLeft','a','ArrowRight','d'].includes(e.key)) player.speed = 0;
+    if(e.key===' '||e.key==='Shift') nitro.active = false;
+});
+document.getElementById('btn-left').addEventListener('touchstart', e=>{e.preventDefault();player.speed=-7});
+document.getElementById('btn-left').addEventListener('touchend', e=>{e.preventDefault();player.speed=0});
+document.getElementById('btn-right').addEventListener('touchstart', e=>{e.preventDefault();player.speed=7});
+document.getElementById('btn-right').addEventListener('touchend', e=>{e.preventDefault();player.speed=0});
+document.getElementById('mobile-nitro-btn').addEventListener('touchstart', e=>{e.preventDefault();nitro.active=true});
+document.getElementById('mobile-nitro-btn').addEventListener('touchend', e=>{e.preventDefault();nitro.active=false});
 
 atualizarMenu();
 </script>
