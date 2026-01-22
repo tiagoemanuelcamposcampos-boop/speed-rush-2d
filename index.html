@@ -1,71 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Corrida 2D</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    font-family: Arial, sans-serif;
+    color: white;
+    text-align: center;
+  }
+  canvas {
+    background: black;
+    display: block;
+    margin: auto;
+  }
+  #menu {
+    position: absolute;
+    width: 100%;
+    top: 100px;
+  }
+  button {
+    padding: 10px 20px;
+    margin: 10px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .locked {
+    opacity: 0.5;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="menu">
+  <h1>🏎️ Corrida 2D</h1>
+  <p id="recordeTexto"></p>
+  <p id="moedasTexto"></p>
+  <button onclick="startGame()">▶ Jogar</button><br>
+  <button onclick="comprarCarro(1)" id="btn1">Comprar Carro Azul (50)</button><br>
+  <button onclick="comprarCarro(2)" id="btn2">Comprar Carro Verde (150)</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<!-- Sons -->
+<audio id="motor" loop src="https://assets.mixkit.co/sfx/preview/mixkit-fast-car-engine-loop-1196.mp3"></audio>
+<audio id="crash" src="https://assets.mixkit.co/sfx/preview/mixkit-car-crash-1562.mp3"></audio>
+
 <script>
+/* ================= CANVAS ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-canvas.width = Math.min(400, window.innerWidth);
-canvas.height = window.innerHeight;
+canvas.width = 400;
+canvas.height = 600;
 
 /* ================= IMAGENS ================= */
-
-// carros do jogador
-const carrosJogador = [
+const carrosJogadorSrc = [
   "https://i.imgur.com/Y4RZ6Zy.png",
   "https://i.imgur.com/1Q9Z1Zm.png",
   "https://i.imgur.com/6W2Rz9Z.png"
 ];
 
-// carros inimigos
-const carrosInimigos = [
+const carrosInimigosSrc = [
   "https://i.imgur.com/9QOQZ4F.png",
   "https://i.imgur.com/WP7JQkU.png"
 ];
 
-// pista
 const pistaImg = new Image();
 pistaImg.src = "https://i.imgur.com/2JYQZQp.png";
 
-let carroPlayerImg = new Image();
-let inimigoImgs = carrosInimigos.map(src => {
-  let img = new Image();
+const carrosJogador = carrosJogadorSrc.map(src => {
+  const img = new Image();
   img.src = src;
   return img;
 });
 
-/* ================= DADOS SALVOS ================= */
+const carrosInimigos = carrosInimigosSrc.map(src => {
+  const img = new Image();
+  img.src = src;
+  return img;
+});
 
+/* ================= SAVE ================= */
 let moedas = Number(localStorage.getItem("moedas")) || 0;
 let recorde = Number(localStorage.getItem("recorde")) || 0;
 let carrosComprados = JSON.parse(localStorage.getItem("carros")) || [true,false,false];
 let carroAtual = Number(localStorage.getItem("carroAtual")) || 0;
-
-/* ================= MENU ================= */
-
-document.getElementById("recordeTexto").innerText = "🏆 Recorde: " + recorde + " s";
-document.getElementById("moedasTexto").innerText = "💰 Moedas: " + moedas;
-
-function atualizarLoja(){
-  document.getElementById("btn1").className = carrosComprados[1] ? "" : "locked";
-  document.getElementById("btn2").className = carrosComprados[2] ? "" : "locked";
-}
-atualizarLoja();
-
-function comprarCarro(id){
-  const precos = [0,50,150];
-  if(carrosComprados[id]){
-    selecionarCarro(id);
-    return;
-  }
-  if(moedas >= precos[id]){
-    moedas -= precos[id];
-    carrosComprados[id] = true;
-    selecionarCarro(id);
-    salvar();
-  }
-}
-
-function selecionarCarro(id){
-  carroAtual = id;
-  salvar();
-}
 
 function salvar(){
   localStorage.setItem("moedas", moedas);
@@ -74,20 +98,46 @@ function salvar(){
   localStorage.setItem("carroAtual", carroAtual);
 }
 
-/* ================= JOGO ================= */
+/* ================= MENU ================= */
+const recordeTexto = document.getElementById("recordeTexto");
+const moedasTexto = document.getElementById("moedasTexto");
 
-let player, obstacles, gameOver, startTime;
-let dificuldade = 1;
+function atualizarMenu(){
+  recordeTexto.innerText = "🏆 Recorde: " + recorde + "s";
+  moedasTexto.innerText = "💰 Moedas: " + moedas;
+  document.getElementById("btn1").className = carrosComprados[1] ? "" : "locked";
+  document.getElementById("btn2").className = carrosComprados[2] ? "" : "locked";
+}
+atualizarMenu();
+
+function comprarCarro(id){
+  const precos = [0,50,150];
+  if(carrosComprados[id]){
+    carroAtual = id;
+    salvar();
+    return;
+  }
+  if(moedas >= precos[id]){
+    moedas -= precos[id];
+    carrosComprados[id] = true;
+    carroAtual = id;
+    salvar();
+    atualizarMenu();
+  }
+}
+
+/* ================= JOGO ================= */
+let player, obstacles, gameOver;
+let startTime, ultimoTempoMoeda = 0;
 let pistaY = 0;
 
 function startGame(){
   document.getElementById("menu").style.display = "none";
-
-  carroPlayerImg.src = carrosJogador[carroAtual];
+  document.getElementById("motor").play();
 
   player = {
     x: canvas.width / 2 - 20,
-    y: canvas.height - 120,
+    y: canvas.height - 100,
     w: 40,
     h: 80,
     speed: 7
@@ -96,66 +146,62 @@ function startGame(){
   obstacles = [];
   gameOver = false;
   startTime = Date.now();
+  ultimoTempoMoeda = 0;
 
-  document.getElementById("motor").play();
-  update();
+  requestAnimationFrame(update);
 }
 
 /* ================= CONTROLES ================= */
-
 document.addEventListener("keydown", e => {
+  if(!player) return;
   if(e.key === "ArrowLeft") player.x -= player.speed;
   if(e.key === "ArrowRight") player.x += player.speed;
 });
 
 canvas.addEventListener("touchstart", e => {
+  if(!player) return;
   let x = e.touches[0].clientX;
   x < window.innerWidth/2 ? player.x -= player.speed*3 : player.x += player.speed*3;
 });
 
 /* ================= OBSTÁCULOS ================= */
-
 setInterval(() => {
-  if(!gameOver){
+  if(!gameOver && player){
     obstacles.push({
-      x: Math.random() * (canvas.width - 40),
+      x: Math.random() * (canvas.width - 60) + 10,
       y: -100,
       w: 40,
       h: 80,
-      img: inimigoImgs[Math.floor(Math.random()*inimigoImgs.length)]
+      img: carrosInimigos[Math.floor(Math.random()*carrosInimigos.length)]
     });
   }
-}, 1100);
+}, 1200);
 
 /* ================= LOOP ================= */
-
 function update(){
   if(gameOver) return;
 
-  let tempo = Math.floor((Date.now() - startTime) / 1000);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // moedas automáticas
-  if(tempo > 0 && tempo % 30 === 0){
+  const tempo = Math.floor((Date.now() - startTime)/1000);
+
+  if(tempo > 0 && tempo % 30 === 0 && tempo !== ultimoTempoMoeda){
     moedas += 10;
+    ultimoTempoMoeda = tempo;
     salvar();
   }
 
-  dificuldade = 1 + tempo / 30;
-
-  /* pista animada */
-  pistaY += 4 * dificuldade;
+  pistaY += 4;
   if(pistaY >= canvas.height) pistaY = 0;
 
   ctx.drawImage(pistaImg, 0, pistaY - canvas.height, canvas.width, canvas.height);
   ctx.drawImage(pistaImg, 0, pistaY, canvas.width, canvas.height);
 
-  /* jogador */
   player.x = Math.max(0, Math.min(canvas.width - player.w, player.x));
-  ctx.drawImage(carroPlayerImg, player.x, player.y, player.w, player.h);
+  ctx.drawImage(carrosJogador[carroAtual], player.x, player.y, player.w, player.h);
 
-  /* inimigos */
   obstacles.forEach(o => {
-    o.y += 4 * dificuldade;
+    o.y += 4;
     ctx.drawImage(o.img, o.x, o.y, o.w, o.h);
 
     if(
@@ -177,12 +223,14 @@ function update(){
 
   obstacles = obstacles.filter(o => o.y < canvas.height);
 
-  /* HUD */
   ctx.fillStyle = "white";
-  ctx.font = "20px Arial";
-  ctx.fillText("⏱️ " + tempo + "s", 10, 30);
-  ctx.fillText("💰 " + moedas, 10, 60);
+  ctx.font = "18px Arial";
+  ctx.fillText("⏱️ " + tempo + "s", 10, 25);
+  ctx.fillText("💰 " + moedas, 10, 50);
 
   requestAnimationFrame(update);
 }
 </script>
+
+</body>
+</html>
